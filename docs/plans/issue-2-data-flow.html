@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">Data Flow: Search Input → Filtered Issue List</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">User Types</div>
+      <div class="diagram-flow-sublabel">Search Input</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">IssueList</div>
+      <div class="diagram-flow-sublabel">onSearchChange</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">Parent Page</div>
+      <div class="diagram-flow-sublabel">useState + debounce</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQL Query</div>
+      <div class="diagram-flow-sublabel">LIKE '%term%'</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQLite (WASM)</div>
+      <div class="diagram-flow-sublabel">Filtered Results</div>
+    </div>
+  </div>
+  <div style="margin-top: 32px;">
+    <div class="diagram-box renderer">
+      <div class="diagram-box-title">ISSUELIST COMPONENT</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">Search input with debounced onChange</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Clear/reset button</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Passes search term up to parent</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top: 16px;">
+    <div class="diagram-box main">
+      <div class="diagram-box-title">PARENT PAGES (3 files)</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">teams/issues.tsx — all / active / backlog</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">assigned/index.tsx — my issues</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">teams/projects/issues.tsx — per-project</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
