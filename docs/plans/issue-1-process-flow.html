@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>React Router Upgrade Process</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    .diagram { max-width: 800px; margin: 0 auto; }
+    .diagram-title {
+      color: #f0f6fc;
+      font-size: 22px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 40px;
+      letter-spacing: 0.5px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #58a6ff, #0969da);
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 16px;
+      margin-top: 2px;
+    }
+    .step-content {
+      flex: 1;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .step-title {
+      color: #f0f6fc;
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+    .step-desc {
+      color: #8b949e;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .step-desc code {
+      background: #21262d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      color: #ffa657;
+    }
+    .connector {
+      width: 2px;
+      height: 24px;
+      background: linear-gradient(to bottom, #30363d, #58a6ff);
+      margin-left: 17px;
+      margin-bottom: 8px;
+    }
+    .branch {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .branch-box {
+      flex: 1;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+    }
+    .branch-box.yes {
+      background: rgba(35, 197, 94, 0.1);
+      border: 1px solid rgba(35, 197, 94, 0.3);
+    }
+    .branch-box.no {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+    .branch-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .branch-box.yes .branch-title { color: #3fb950; }
+    .branch-box.no .branch-title { color: #f85149; }
+    .final {
+      text-align: center;
+      margin-top: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(35, 197, 94, 0.1), rgba(35, 197, 94, 0.05));
+      border: 1px solid rgba(35, 197, 94, 0.3);
+      border-radius: 10px;
+    }
+    .final-title {
+      color: #3fb950;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .final-desc {
+      color: #8b949e;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="diagram">
+    <div class="diagram-title">React Router Upgrade: 7.1.5 → 7.17.0</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Update Package Versions</div>
+        <div class="step-desc">Bump <code>react-router</code>, <code>@react-router/node</code>, <code>@react-router/serve</code>, and <code>@react-router/dev</code> from <code>7.1.5</code> to <code>7.17.0</code> in <code>package.json</code></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Install Dependencies</div>
+        <div class="step-desc">Run <code>npm install</code> to update lock file and resolve transitive dependencies</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Review Changelog & Audit APIs</div>
+        <div class="step-desc">Check React Router v7 changelog for breaking changes; verify all APIs used (<code>Form</code>, <code>redirect</code>, <code>useActionData</code>, etc.) are still supported</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Run Dev Server & Build</div>
+        <div class="step-desc">Test <code>npm run dev</code> and <code>npm run build</code> to verify tooling compatibility</div>
+        <div class="branch">
+          <div class="branch-box yes">
+            <div class="branch-title">✓ Success</div>
+            <div class="step-desc">Proceed to route testing</div>
+          </div>
+          <div class="branch-box no">
+            <div class="branch-title">✗ Errors</div>
+            <div class="step-desc">Fix issues, review config files</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">Verify All Routes & Navigation</div>
+        <div class="step-desc">Click through auth, teams, projects, assigned issues — confirm all routes load and navigation works</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <div class="step-title">TypeScript Check</div>
+        <div class="step-desc">Run <code>npx tsc --noEmit</code> to ensure no type errors introduced by the upgrade</div>
+      </div>
+    </div>
+
+    <div class="final">
+      <div class="final-title">✅ Upgrade Complete</div>
+      <div class="final-desc">React Router 7.17.0 is running with all routes verified</div>
+    </div>
+  </div>
+</body>
+</html>
