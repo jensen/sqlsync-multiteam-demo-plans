@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">Data Model: Labels</div>
+  <div class="diagram-row">
+    <div class="diagram-box renderer">
+      <div class="diagram-box-title">TABLES</div>
+      <div class="diagram-steps">
+        <div class="diagram-step">
+          <span class="diagram-step-text"><code class="diagram-step-code">users</code></span>
+        </div>
+        <div class="diagram-step">
+          <span class="diagram-step-text"><code class="diagram-step-code">projects</code></span>
+        </div>
+        <div class="diagram-step">
+          <span class="diagram-step-text"><code class="diagram-step-code">issues</code></span>
+        </div>
+        <div class="diagram-step success">
+          <span class="diagram-step-text"><code class="diagram-step-code">label</code> ← NEW</span>
+        </div>
+        <div class="diagram-step success">
+          <span class="diagram-step-text"><code class="diagram-step-code">issue_label</code> ← NEW</span>
+        </div>
+      </div>
+    </div>
+    <div class="diagram-ipc">
+      <div class="diagram-ipc-inner">
+        <div class="diagram-ipc-line"></div>
+        <div class="diagram-ipc-label">Relationships</div>
+        <div class="diagram-ipc-arrow"></div>
+      </div>
+    </div>
+    <div class="diagram-box main">
+      <div class="diagram-box-title">JOINS</div>
+      <div class="diagram-steps">
+        <div class="diagram-step">
+          <span class="diagram-step-text"><code class="diagram-step-code">issues</code> → <code class="diagram-step-code">users</code> (assigned_to)</span>
+        </div>
+        <div class="diagram-step">
+          <span class="diagram-step-text"><code class="diagram-step-code">issues</code> → <code class="diagram-step-code">projects</code> (project_id)</span>
+        </div>
+        <div class="diagram-step success">
+          <span class="diagram-step-text"><code class="diagram-step-code">issue_label</code> → <code class="diagram-step-code">issues</code> (issue_id)</span>
+        </div>
+        <div class="diagram-step success">
+          <span class="diagram-step-text"><code class="diagram-step-code">issue_label</code> → <code class="diagram-step-code">label</code> (label_id)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="diagram-row" style="margin-top: 24px;">
+    <div class="diagram-box renderer" style="flex: 1;">
+      <div class="diagram-box-title">label schema</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">id text PRIMARY KEY</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">name text NOT NULL</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">color text NOT NULL</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">created_at text NOT NULL</span></div>
+      </div>
+    </div>
+    <div class="diagram-box main" style="flex: 1;">
+      <div class="diagram-box-title">issue_label schema</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">issue_id text NOT NULL</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">label_id text NOT NULL</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">PRIMARY KEY (issue_id, label_id)</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">FK → issues(id), label(id)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

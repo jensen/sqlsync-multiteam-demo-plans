@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">UI Flow: Labels Feature</div>
+  <div class="diagram-journey">
+    <div class="diagram-journey-step">
+      <div class="diagram-journey-num">1</div>
+      <div class="diagram-journey-content">
+        <div class="diagram-journey-action">User navigates to Team → Labels</div>
+        <div class="diagram-journey-response">→ LabelManager screen renders</div>
+      </div>
+    </div>
+    <div class="diagram-journey-connector"></div>
+    <div class="diagram-journey-step">
+      <div class="diagram-journey-num">2</div>
+      <div class="diagram-journey-content">
+        <div class="diagram-journey-action">User creates a label (name + color)</div>
+        <div class="diagram-journey-response">→ <code class="diagram-step-code">AddLabel</code> mutation sent</div>
+      </div>
+    </div>
+    <div class="diagram-journey-connector"></div>
+    <div class="diagram-journey-step">
+      <div class="diagram-journey-num">3</div>
+      <div class="diagram-journey-content">
+        <div class="diagram-journey-action">User creates an issue</div>
+        <div class="diagram-journey-response">→ LabelPicker shows available labels</div>
+      </div>
+    </div>
+    <div class="diagram-journey-connector"></div>
+    <div class="diagram-journey-step">
+      <div class="diagram-journey-num">4</div>
+      <div class="diagram-journey-content">
+        <div class="diagram-journey-action">User selects labels in picker</div>
+        <div class="diagram-journey-response">→ Issue saved; <code class="diagram-step-code">AddLabelToIssue</code> mutations</div>
+      </div>
+    </div>
+    <div class="diagram-journey-connector"></div>
+    <div class="diagram-journey-step">
+      <div class="diagram-journey-num">5</div>
+      <div class="diagram-journey-content">
+        <div class="diagram-journey-action">Issue list displays LabelChip on each row</div>
+        <div class="diagram-journey-response">→ Filter bar shows active label filters</div>
+      </div>
+    </div>
+    <div class="diagram-journey-connector"></div>
+    <div class="diagram-journey-step">
+      <div class="diagram-journey-num">6</div>
+      <div class="diagram-journey-content">
+        <div class="diagram-journey-action">User clicks label filter</div>
+        <div class="diagram-journey-response">→ Issue list re-queries with label JOIN + WHERE</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
