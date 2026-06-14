@@ -6,4 +6,10 @@ This repository contains design plans, architecture diagrams, and testing report
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| #1 | Upgrade React Router from 7.1.5 to 7.17.0 | In Progress |
+| #1 | Upgrade React Router from 7.1.5 to 7.17.0 | **Ready for PR** |
+
+## Completed Plans
+
+| Issue | Title | Status |
+|-------|-------|--------|
+| — | — | — |

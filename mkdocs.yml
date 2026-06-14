@@ -17,5 +17,6 @@ nav:
   - Home: index.md
   - Plans:
     - Issue #1 – Upgrade React Router: plans/issue-1-plan.md
+    - Issue #1 – Adversarial Testing: plans/issue-1-adversarial-testing.md
 extra_css:
   - extra.css
