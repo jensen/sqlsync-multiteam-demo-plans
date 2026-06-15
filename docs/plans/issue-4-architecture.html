@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">System Architecture: Comments & Activity Feed</div>
+  <div class="diagram-row">
+    <div class="diagram-box renderer">
+      <div class="diagram-box-title">REACT FRONTEND</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">CommentInput.tsx</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">CommentList.tsx</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">CommentItem.tsx</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">ActivityFeed.tsx</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">issue.tsx (integration)</span></div>
+      </div>
+    </div>
+    <div class="diagram-ipc">
+      <div class="diagram-ipc-inner">
+        <div class="diagram-ipc-line"></div>
+        <div class="diagram-ipc-label">SQLSync IPC</div>
+        <div class="diagram-ipc-arrow"></div>
+      </div>
+    </div>
+    <div class="diagram-box main">
+      <div class="diagram-box-title">RUST REDUCER</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">AddComment mutation</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">EditComment mutation</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">DeleteComment mutation</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">LogActivity mutation</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Auto-log on UpdateIssue</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top: 30px; text-align: center;">
+    <div class="diagram-box main" style="max-width: 400px; margin: 0 auto;">
+      <div class="diagram-box-title">SQLITE DATABASE</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">issues table</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">comments table (new)</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">activities table (new)</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">users table</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">projects table</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

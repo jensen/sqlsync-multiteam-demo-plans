@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #18181b;
+      color: #e4e4e7;
+      padding: 40px;
+    }
+    .scenario {
+      margin-bottom: 60px;
+    }
+    .scenario-title {
+      color: #a1a1aa;
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .issue-page {
+      background: #27272a;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 700px;
+      border: 1px solid #3f3f46;
+    }
+    .issue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .badges {
+      display: flex;
+      gap: 8px;
+    }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #3f3f46;
+      color: #d4d4d8;
+    }
+    .issue-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fafafa;
+      margin-bottom: 12px;
+    }
+    .issue-body {
+      color: #d4d4d8;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #3f3f46;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #3f3f46;
+      padding-bottom: 8px;
+    }
+    .tab {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #a1a1aa;
+    }
+    .tab.active {
+      background: #3f3f46;
+      color: #fafafa;
+    }
+    .comment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .comment {
+      display: flex;
+      gap: 12px;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #7c3aed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+    .comment-body {
+      flex: 1;
+    }
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .author-name {
+      font-weight: 500;
+      font-size: 13px;
+      color: #fafafa;
+    }
+    .timestamp {
+      font-size: 12px;
+      color: #71717a;
+    }
+    .comment-text {
+      font-size: 13px;
+      color: #d4d4d8;
+      line-height: 1.5;
+    }
+    .comment-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .comment-action {
+      font-size: 12px;
+      color: #71717a;
+      cursor: pointer;
+    }
+    .comment-action:hover {
+      color: #a1a1aa;
+    }
+    .comment-input {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .comment-input textarea {
+      flex: 1;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #e4e4e7;
+      font-size: 13px;
+      resize: vertical;
+      min-height: 60px;
+      outline: none;
+    }
+    .comment-input textarea::placeholder {
+      color: #71717a;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      align-self: flex-start;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    .activity-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .activity-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .activity-content {
+      font-size: 13px;
+      color: #d4d4d8;
+      line-height: 1.5;
+    }
+    .activity-content strong {
+      color: #fafafa;
+      font-weight: 500;
+    }
+    .timeline {
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 32px;
+      bottom: 0;
+      width: 2px;
+      background: #3f3f46;
+    }
+  </style>
+</head>
+<body>
+  <div class="scenario">
+    <div class="scenario-title">1. Issue Detail with Comments Tab</div>
+    <div class="issue-page">
+      <div class="issue-header">
+        <div class="badges">
+          <div class="badge">🔵 In Progress</div>
+          <div class="badge">⚡ High</div>
+          <div class="badge">👤 Alice</div>
+        </div>
+      </div>
+      <h1 class="issue-title">Add dark mode toggle to settings</h1>
+      <p class="issue-body">
+        Users have requested the ability to toggle between light and dark themes.
+        This should persist across sessions and apply to all components.
+      </p>
+      <div class="tabs">
+        <div class="tab active">Comments (2)</div>
+        <div class="tab">Activity</div>
+      </div>
+      <div class="comment-list">
+        <div class="comment">
+          <div class="avatar">AJ</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="author-name">Alice Johnson</span>
+              <span class="timestamp">2 hours ago</span>
+            </div>
+            <p class="comment-text">I'll pick this up. Should we use CSS variables or a theme provider?</p>
+            <div class="comment-actions">
+              <span class="comment-action">Edit</span>
+              <span class="comment-action">Delete</span>
+            </div>
+          </div>
+        </div>
+        <div class="comment">
+          <div class="avatar" style="background: #059669;">BS</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <span class="author-name">Bob Smith</span>
+              <span class="timestamp">1 hour ago</span>
+            </div>
+            <p class="comment-text">CSS variables would be simpler and avoid re-renders. Let's go with that approach.</p>
+          </div>
+        </div>
+      </div>
+      <div class="comment-input">
+        <div class="avatar">ME</div>
+        <textarea placeholder="Write a comment..."></textarea>
+        <button class="btn btn-primary">Comment</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <div class="scenario-title">2. Activity Feed Tab</div>
+    <div class="issue-page">
+      <div class="issue-header">
+        <div class="badges">
+          <div class="badge">🔵 In Progress</div>
+          <div class="badge">⚡ High</div>
+          <div class="badge">👤 Alice</div>
+        </div>
+      </div>
+      <h1 class="issue-title">Add dark mode toggle to settings</h1>
+      <p class="issue-body">
+        Users have requested the ability to toggle between light and dark themes.
+      </p>
+      <div class="tabs">
+        <div class="tab">Comments (2)</div>
+        <div class="tab active">Activity</div>
+      </div>
+      <div class="activity-feed timeline">
+        <div class="activity-item">
+          <div class="avatar" style="background: #7c3aed;">AJ</div>
+          <div class="activity-content">
+            <strong>Alice Johnson</strong> changed status from <strong>Backlog</strong> to <strong>In Progress</strong>
+            <div class="timestamp">2 hours ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="avatar" style="background: #059669;">BS</div>
+          <div class="activity-content">
+            <strong>Bob Smith</strong> assigned to <strong>Alice Johnson</strong>
+            <div class="timestamp">3 hours ago</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="avatar" style="background: #7c3aed;">AJ</div>
+          <div class="activity-content">
+            <strong>Alice Johnson</strong> created this issue
+            <div class="timestamp">1 day ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

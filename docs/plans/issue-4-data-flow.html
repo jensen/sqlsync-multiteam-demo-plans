@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">Data Flow: Comment Submission</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">User Input</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">CommentInput</div>
+      <div class="diagram-flow-sublabel">onSubmit</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">useMutate</div>
+      <div class="diagram-flow-sublabel">AddComment</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQLSync</div>
+      <div class="diagram-flow-sublabel">serialize → IPC</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">Rust Reducer</div>
+      <div class="diagram-flow-sublabel">INSERT INTO comments</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQLite</div>
+    </div>
+  </div>
+  <div style="margin-top: 40px;"></div>
+  <div class="diagram-title">Data Flow: Activity Auto-Log</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">UpdateIssue</div>
+      <div class="diagram-flow-sublabel">status change</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">Rust Reducer</div>
+      <div class="diagram-flow-sublabel">UPDATE issues</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">Rust Reducer</div>
+      <div class="diagram-flow-sublabel">INSERT INTO activities</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQLite</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">ActivityFeed</div>
+      <div class="diagram-flow-sublabel">reactive query</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

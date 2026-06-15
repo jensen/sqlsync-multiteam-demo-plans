@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">Before/After: FormData Parsing Fix</div>
+  <div class="diagram-comparison">
+    <div class="diagram-comparison-side before">
+      <div class="diagram-comparison-title">❌ BEFORE</div>
+      <div class="diagram-comparison-content">
+        <div class="diagram-step"><span class="diagram-step-code">Object.fromEntries(await request.formData()) as unknown as { ... }</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text">No runtime validation</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text">File uploads treated as strings</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text">Missing fields = undefined silently</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step error"><span class="diagram-step-text">Bad data flows into mutate() ❌</span></div>
+      </div>
+    </div>
+    <div class="diagram-comparison-divider"></div>
+    <div class="diagram-comparison-side after">
+      <div class="diagram-comparison-title">✅ AFTER</div>
+      <div class="diagram-comparison-content">
+        <div class="diagram-step"><span class="diagram-step-code">parseFormData(fd, ["title","body",...])</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text">Every field validated at runtime</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text">Non-string values rejected</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text">Missing fields throw clear errors</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step success"><span class="diagram-step-text">Type-safe data into mutate() ✅</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
