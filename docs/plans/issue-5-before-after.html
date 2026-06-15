@@ -1,42 +1,148 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="../../extra.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 40px;
+      margin: 0;
+    }
+    .diagram-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 40px;
+      color: #fff;
+    }
+    .comparison {
+      display: flex;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .side {
+      flex: 1;
+      background: #242424;
+      border-radius: 12px;
+      padding: 24px;
+      border: 2px solid;
+    }
+    .side.before { border-color: #ef4444; }
+    .side.after { border-color: #22c55e; }
+    .side-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .side.before .side-title { color: #ef4444; }
+    .side.after .side-title { color: #22c55e; }
+    .code-block {
+      background: #0d0d0d;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      color: #d4d4d4;
+    }
+    .keyword { color: #c586c0; }
+    .type { color: #4ec9b0; }
+    .string { color: #ce9178; }
+    .func { color: #dcdcaa; }
+    .comment { color: #6a9955; }
+    .danger { color: #ef4444; }
+    .safe { color: #22c55e; }
+    .arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: #888;
+      padding: 0 10px;
+    }
+    .benefits {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #333;
+    }
+    .benefits h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .benefits ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .benefits.before li { color: #fca5a5; }
+    .benefits.after li { color: #86efac; }
+  </style>
 </head>
 <body>
-<div class="diagram">
-  <div class="diagram-title">Before/After: FormData Parsing Fix</div>
-  <div class="diagram-comparison">
-    <div class="diagram-comparison-side before">
-      <div class="diagram-comparison-title">❌ BEFORE</div>
-      <div class="diagram-comparison-content">
-        <div class="diagram-step"><span class="diagram-step-code">Object.fromEntries(await request.formData()) as unknown as { ... }</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step"><span class="diagram-step-text">No runtime validation</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step"><span class="diagram-step-text">File uploads treated as strings</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step"><span class="diagram-step-text">Missing fields = undefined silently</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step error"><span class="diagram-step-text">Bad data flows into mutate() ❌</span></div>
+  <div class="diagram-title">Before/After: FormData Type Safety</div>
+  <div class="comparison">
+    <div class="side before">
+      <div class="side-title">❌ BEFORE</div>
+      <div class="code-block">
+<span class="keyword">const</span> body = <span class="func">Object.fromEntries</span>(
+  <span class="keyword">await</span> request.<span class="func">formData</span>()
+) <span class="danger">as unknown as</span> {
+  title: <span class="type">string</span>;
+  priority: <span class="type">string</span>;
+  team: <span class="type">string</span>;
+};
+
+<span class="comment">// No runtime validation!</span>
+<span class="comment">// File uploads pass through silently</span>
+<span class="comment">// Missing fields become undefined</span>
+<span class="comment">// Type safety is a lie at runtime</span>
+      </div>
+      <div class="benefits before">
+        <h4>Problems</h4>
+        <ul>
+          <li>Casts bypass all validation</li>
+          <li>Files treated as strings</li>
+          <li>Missing fields → undefined</li>
+          <li>Silent data corruption</li>
+        </ul>
       </div>
     </div>
-    <div class="diagram-comparison-divider"></div>
-    <div class="diagram-comparison-side after">
-      <div class="diagram-comparison-title">✅ AFTER</div>
-      <div class="diagram-comparison-content">
-        <div class="diagram-step"><span class="diagram-step-code">parseFormData(fd, ["title","body",...])</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step"><span class="diagram-step-text">Every field validated at runtime</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step"><span class="diagram-step-text">Non-string values rejected</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step"><span class="diagram-step-text">Missing fields throw clear errors</span></div>
-        <div class="diagram-connector"></div>
-        <div class="diagram-step success"><span class="diagram-step-text">Type-safe data into mutate() ✅</span></div>
+    <div class="arrow">→</div>
+    <div class="side after">
+      <div class="side-title">✅ AFTER</div>
+      <div class="code-block">
+<span class="keyword">const</span> body = <span class="func">parseFormData</span>&lt;{
+  title: <span class="type">string</span>;
+  priority: <span class="type">string</span>;
+  team: <span class="type">string</span>;
+}&gt;(<span class="keyword">await</span> request.<span class="func">formData</span>(), [
+  <span class="string">"title"</span>, <span class="string">"priority"</span>, <span class="string">"team"</span>
+]);
+
+<span class="comment">// Runtime validation guarantees:</span>
+<span class="comment">// - All fields are present</span>
+<span class="comment">// - All values are strings</span>
+<span class="comment">// - Errors thrown immediately</span>
+      </div>
+      <div class="benefits after">
+        <h4>Benefits</h4>
+        <ul>
+          <li>Every field validated at runtime</li>
+          <li>Files rejected with clear errors</li>
+          <li>Missing fields throw immediately</li>
+          <li>Type safety is real, not fiction</li>
+        </ul>
       </div>
     </div>
   </div>
-</div>
 </body>
 </html>
