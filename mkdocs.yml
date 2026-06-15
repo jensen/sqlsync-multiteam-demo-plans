@@ -20,6 +20,7 @@ nav:
     - Issue #1 – Adversarial Testing: plans/issue-1-adversarial-testing.md
     - Issue #2 – Search Input: plans/issue-2-plan.md
     - Issue #3 – Labels: plans/issue-3-plan.md
+    - Issue #4 – Issue Comments & Activity Feed: plans/issue-4-plan.md
     - Issue #5 – Fix Type-Erasing Casts: plans/issue-5-plan.md
 extra_css:
   - extra.css
