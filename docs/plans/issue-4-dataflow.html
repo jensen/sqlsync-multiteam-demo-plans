@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../../extra.css">
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">Data Flow: Add Comment → Render</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">User</div>
+      <div class="diagram-flow-sublabel">types comment</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">CommentInput</div>
+      <div class="diagram-flow-sublabel">onSubmit</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">useMutate</div>
+      <div class="diagram-flow-sublabel">AddComment mutation</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">WASM Reducer</div>
+      <div class="diagram-flow-sublabel">INSERT INTO comments</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">Auto LogActivity</div>
+      <div class="diagram-flow-sublabel">INSERT INTO activities</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQLSync</div>
+      <div class="diagram-flow-sublabel">Reactive query update</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">CommentList</div>
+      <div class="diagram-flow-sublabel">Re-renders with new row</div>
+    </div>
+  </div>
+
+  <div class="diagram-title" style="margin-top: 40px;">Data Flow: Issue Update → Activity Log</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">User</div>
+      <div class="diagram-flow-sublabel">changes status</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">IssueDetails</div>
+      <div class="diagram-flow-sublabel">Select onChange</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">useMutate</div>
+      <div class="diagram-flow-sublabel">UpdateIssue mutation</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">WASM Reducer</div>
+      <div class="diagram-flow-sublabel">UPDATE issues + INSERT activities</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">SQLSync</div>
+      <div class="diagram-flow-sublabel">Reactive query update</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">ActivityFeed</div>
+      <div class="diagram-flow-sublabel">Re-renders with new event</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

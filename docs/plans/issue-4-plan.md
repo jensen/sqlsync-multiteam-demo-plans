@@ -2,171 +2,154 @@
 
 ## Issue Summary
 
-Add the ability to comment on issues and see an activity timeline of changes. This feature spans the Rust WASM reducer and the React frontend.
+Add the ability to comment on issues and see an activity timeline of changes. This feature spans the Rust WASM reducer and the React frontend, consisting of **6 tasks** with clear dependencies.
 
-## Current Status
+**Dependency graph:**
+- Tasks 1 & 2 can run in parallel (both Rust reducer changes)
+- Tasks 3 & 4 can run in parallel once 1 & 2 are done (both React UI components)
+- Task 5 depends on 3 & 4 (integration)
+- Task 6 depends on 1 & 2 (type updates)
 
-The following tasks are **already completed** in the existing worktree (`fix/issue-4`):
+## Architecture
 
-| Task | Status | Location |
-|------|--------|----------|
-| Task 1: Comment Schema & Mutations | ✅ Complete | `reducer/src/lib.rs` |
-| Task 2: Activity Log Schema & Mutations | ✅ Complete | `reducer/src/lib.rs` |
-| Task 6: TypeScript Types | ✅ Complete | `app/doctype.ts` |
-| Rust Integration Tests | ✅ Complete | `tests/dag-runs/*/integration_test.rs` |
+![System Architecture](./issue-4-architecture.png)
 
-**Remaining work:** Tasks 3, 4, and 5 — the React UI layer and integration.
+## Data Flow
 
-## Root Cause Analysis
+![Data Flow](./issue-4-dataflow.png)
 
-N/A — this is a feature request, not a bug.
+## UI Before/After
 
-## Architecture Overview
+![UI Before/After](./issue-4-ui.png)
 
-The feature uses SQLSync's local-first architecture: mutations flow from React → WASM reducer → SQLite, then sync to other clients.
+## Task Breakdown
 
+### Task 1: Comment Schema & Mutations (`reducer/src/lib.rs`)
+
+**Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS comments (
+    id TEXT PRIMARY KEY,
+    issue_id TEXT NOT NULL,
+    author_id TEXT NOT NULL,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (issue_id) REFERENCES issues(id),
+    FOREIGN KEY (author_id) REFERENCES users(id)
+)
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  React UI   │────▶│  useMutate  │────▶│ WASM Reducer│
-│  Components │     │  (sqlsync)  │     │   (lib.rs)  │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-      ▲                                          │
-      │                                          │
-      │     ┌─────────────┐                    │
-      └─────│  useQuery   │◀───────────────────┘
-            │  (sqlsync)    │
-            └─────────────┘
+
+**Mutations:**
+- `AddComment { id, issue_id, author_id, body }`
+- `EditComment { id, body }`
+- `DeleteComment { id }`
+
+### Task 2: Activity Log Schema & Mutations (`reducer/src/lib.rs`)
+
+**Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS activities (
+    id TEXT PRIMARY KEY,
+    issue_id TEXT NOT NULL,
+    actor_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    payload TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (issue_id) REFERENCES issues(id)
+)
 ```
 
-### Data Model
+**Mutations:**
+- `LogActivity { id, issue_id, actor_id, action, payload }`
 
-**Comments Table:**
-| Column | Type | Notes |
-|--------|------|-------|
-| id | TEXT PK | UUID |
-| issue_id | TEXT FK | References issues(id) |
-| created_by | TEXT FK | References users(id) |
-| body | TEXT | Comment content |
-| created_at | TEXT | ISO timestamp |
-| updated_at | TEXT | ISO timestamp (nullable) |
+**Auto-logging:** Hook into `UpdateIssue`, `AssignIssue`, and `MoveIssues` mutations to automatically insert activity rows when issues change.
 
-**Activities Table:**
-| Column | Type | Notes |
-|--------|------|-------|
-| id | TEXT PK | UUID |
-| issue_id | TEXT FK | References issues(id) |
-| actor_id | TEXT FK | References users(id) |
-| type | TEXT | Activity type enum |
-| payload | TEXT | JSON metadata (nullable) |
-| created_at | TEXT | ISO timestamp |
+### Task 3: Comment UI Components (`app/routes/issues/components/comments/`)
 
-### Auto-Logged Activities
+Create three new components:
+- **`CommentList.tsx`** — Scrollable list of comments for an issue, queries `comments` table via SQLSync
+- **`CommentInput.tsx`** — Textarea + submit button for new comments, uses `useMutate` for `AddComment`
+- **`CommentItem.tsx`** — Single comment with author avatar, timestamp, edit/delete actions. Inline editing support.
 
-The reducer automatically inserts activity rows when certain mutations occur:
+All styled with existing Tailwind dark theme classes.
 
-| Mutation | Activity Type | Payload |
-|----------|--------------|---------|
-| `AddIssue` | `created_issue` | null |
-| `AssignIssue` | `assigned_issue` | `{ assigned_to, old_assigned_to, new_assigned_to }` |
-| `UpdateIssue` | `updated_issue` | `{ changes: { status?, priority? } }` |
-| `ArchiveIssues` | `archived_issue` | null |
-| `RestoreIssues` | `restored_issue` | null |
-| `MoveIssues` | `moved_issue` | `{ project_id, new_project_id }` |
-| `AddComment` | `commented` | null |
-| `UpdateComment` (trigger) | `updated_comment` | null |
-| `DeleteComment` (trigger) | `deleted_comment` | null |
+### Task 4: Activity Feed UI Component (`app/routes/issues/components/activity/`)
 
-### Note on Naming
+Create:
+- **`ActivityFeed.tsx`** — Chronological list of activity events with icons for different action types (status change, assignment, move, comment). Queries `activities` table via SQLSync.
 
-The issue specification uses `author_id` and `LogActivity`, but the existing implementation uses `created_by` and `AddActivity` to maintain consistency with the existing codebase patterns. This is a deliberate design choice — the functionality is identical.
+### Task 5: Integration (`app/routes/issues/components/issue.tsx`)
 
-## Proposed Solution
+- Add tab navigation (Details | Comments | Activity) below the issue body
+- Render `CommentList` + `CommentInput` in Comments tab
+- Render `ActivityFeed` in Activity tab
+- Pass `issue_id` to all child components
 
-### Remaining Task 3: Comment UI Components
+### Task 6: TypeScript Types (`app/doctype.ts`)
 
-Create `app/routes/issues/components/comments/` directory with:
+Extend the `Mutation` union:
+- `AddComment`, `EditComment`, `DeleteComment`
+- `LogActivity`
 
-- **`CommentList.tsx`** — Fetches comments for the current issue via `useQuery`, renders a scrollable list of `CommentItem` components, sorted by `created_at` ascending.
-- **`CommentInput.tsx`** — Textarea with submit button. Uses `useMutate` to dispatch `AddComment` mutations. Generates UUID via `crypto.randomUUID()` (or `uuid` package fallback).
-- **`CommentItem.tsx`** — Displays author avatar (via `UserIcon`), name, timestamp, body. Includes edit/delete actions. Edit mode switches body to a textarea. Delete shows a confirmation state.
+Add new types:
+```typescript
+export type Comment = {
+  id: string;
+  issue_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
 
-### Remaining Task 4: Activity Feed Component
-
-Create `app/routes/issues/components/activity/` directory with:
-
-- **`ActivityFeed.tsx`** — Fetches activities for the current issue via `useQuery`. Renders a chronological timeline with friendly text for each activity type:
-  - `created_issue`: "Alice created this issue"
-  - `assigned_issue`: "Alice assigned to Bob"
-  - `updated_issue`: "Alice changed status from Backlog → In Progress"
-  - `archived_issue`: "Alice deleted this issue"
-  - `restored_issue`: "Alice restored this issue"
-  - `moved_issue`: "Alice moved to Project X"
-  - `commented`: "Alice commented"
-  - `updated_comment`: "Alice edited a comment"
-  - `deleted_comment`: "Alice deleted a comment"
-
-Groups by date (Today, Yesterday, Earlier).
-
-### Remaining Task 5: Integrate into Issue Detail Page
-
-Update `app/routes/issues/components/issue.tsx`:
-- Add tab/switcher: "Details" | "Comments (N)" | "Activity"
-- Details tab shows current issue body + metadata
-- Comments tab shows `CommentList` + `CommentInput`
-- Activity tab shows `ActivityFeed`
-- Pass `issue_id` down to comment/activity components
-
-Update `app/routes/issues/id.tsx`:
-- Query for `project_id` to pass through (already queried)
+export type Activity = {
+  id: string;
+  issue_id: string;
+  actor_id: string;
+  action: string;
+  payload: string | null;
+  created_at: string;
+};
+```
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `app/routes/issues/components/issue.tsx` | Add tabs, integrate comments and activity feed |
-| `app/routes/issues/id.tsx` | Ensure `issue_id` is available (already is via params) |
+| `reducer/src/lib.rs` | Add comments/activities tables, mutations, auto-logging hooks |
+| `app/doctype.ts` | Add new mutation variants and type exports |
+| `app/routes/issues/components/issue.tsx` | Add tabs, integrate comment + activity components |
+| `app/routes/issues/id.tsx` | Query for `project_id` to pass to issue component |
 
 ## New Files
 
 | File | Purpose |
 |------|---------|
-| `app/routes/issues/components/comments/CommentList.tsx` | Scrollable comment list |
-| `app/routes/issues/components/comments/CommentInput.tsx` | New comment input |
-| `app/routes/issues/components/comments/CommentItem.tsx` | Single comment display |
+| `app/routes/issues/components/comments/CommentList.tsx` | List comments for an issue |
+| `app/routes/issues/components/comments/CommentInput.tsx` | Input for new comments |
+| `app/routes/issues/components/comments/CommentItem.tsx` | Single comment display + actions |
 | `app/routes/issues/components/activity/ActivityFeed.tsx` | Activity timeline |
+| `app/lib/string.ts` | Date formatting utilities (relative time) |
 
 ## Test Strategy
 
-Since the project has no frontend test framework configured, we will:
+This project has **no existing test infrastructure**. We will add:
 
-1. **Verify Rust tests pass** — Run the existing integration tests in `tests/dag-runs/*/`
-2. **Build verification** — Ensure `npm run build` succeeds
-3. **Type checking** — Ensure `tsc --noEmit` (or equivalent) passes
-4. **Manual UI verification** — Run `npm run dev` and verify:
-   - Comments can be added, edited, deleted
-   - Activity feed auto-populates on mutations
-   - Tabs switch correctly
-   - Dark theme styling is consistent
-
-### Future Test Setup (out of scope)
-
-Adding Vitest + React Testing Library would be ideal for component-level tests, but requires devDependencies not currently in the project.
+1. **Vitest** for frontend unit/component testing
+2. Tests for:
+   - `CommentItem` rendering and edit/delete actions
+   - `CommentInput` submit validation
+   - `ActivityFeed` chronological sorting
+   - Date formatting utilities
+3. **Reducer build verification** — `cargo build` must succeed for WASM target
 
 ## Risks
 
 | Risk | Mitigation |
 |------|------------|
-| SQLSync schema mismatch between reducer and frontend | Ensure `InitSchema` is called before querying comments/activities |
-| `useMutate` returns `null` in multi-document mode | Components must handle `mutate === null` gracefully (read-only) |
-| Author name resolution | Query `users` table alongside comments to resolve `created_by` → name |
-| Date formatting consistency | Use `Intl.DateTimeFormat` consistently with existing code |
-| Activity payload parsing | Use `JSON.parse` with try/catch for safety |
-
-## Acceptance Criteria Checklist
-
-- [x] Users can add, edit, and delete comments on any issue (reducer ready, UI needed)
-- [x] Comments appear in real-time across synced clients (SQLSync handles this)
-- [x] Activity feed shows status changes, assignments, and moves automatically (reducer auto-logs)
-- [ ] Comments and activities are sorted chronologically in the UI
-- [ ] The UI matches the existing dark theme
-- [x] All new code is TypeScript-typed correctly (types defined, UI to be typed)
+| SQLSync WASM reducer compilation failures | Verify `npm run build:reducer` after every Rust change |
+| Schema migration on existing documents | `InitSchema` is idempotent; new tables use `IF NOT EXISTS` |
+| Real-time sync of comments across clients | SQLSync handles this automatically via CRDT replication |
+| UI tab state persistence | Use React `useState` for active tab; no persistence needed |
+| Activity auto-logging creates duplicate entries | Use single INSERT per mutation handler |
