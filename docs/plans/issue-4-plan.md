@@ -2,31 +2,61 @@
 
 ## Issue Summary
 
-Add the ability to comment on issues and see an activity timeline of changes. This feature spans the Rust WASM reducer and the React frontend, consisting of **6 tasks** with clear dependencies.
+Add the ability to comment on issues and see an activity timeline of changes. This feature spans both the Rust WASM reducer and the React frontend, touching the database schema, mutations, UI components, and type definitions.
 
-**Dependency graph:**
-- Tasks 1 & 2 can run in parallel (both Rust reducer changes)
-- Tasks 3 & 4 can run in parallel once 1 & 2 are done (both React UI components)
-- Task 5 depends on 3 & 4 (integration)
-- Task 6 depends on 1 & 2 (type updates)
+## Architecture Overview
 
-## Architecture
+The implementation consists of **6 sequential tasks** with the following dependency graph:
 
-![System Architecture](./issue-4-architecture.png)
+- **Tasks 1 & 2** (Rust reducer) → can run in parallel
+- **Tasks 3 & 4** (React UI) → depend on 1 & 2
+- **Task 5** (Integration) → depends on 3 & 4
+- **Task 6** (Type updates) → depends on 1 & 2
 
-## Data Flow
+```
+┌─────────────┐     ┌─────────────┐
+│ Task 1:     │     │ Task 2:     │
+│ Comment     │     │ Activity    │
+│ Schema      │     │ Log Schema  │
+└──────┬──────┘     └──────┬──────┘
+       │                   │
+       └─────────┬─────────┘
+                 ▼
+       ┌───────────────────┐
+       │ Task 6: Types     │
+       └───────────────────┘
+                 │
+       ┌─────────┴─────────┐
+       ▼                   ▼
+┌─────────────┐     ┌─────────────┐
+│ Task 3:     │     │ Task 4:     │
+│ Comment UI  │     │ Activity UI │
+└──────┬──────┘     └──────┬──────┘
+       │                   │
+       └─────────┬─────────┘
+                 ▼
+       ┌───────────────────┐
+       │ Task 5: Integrate │
+       │ into Issue Page   │
+       └───────────────────┘
+```
 
-![Data Flow](./issue-4-dataflow.png)
+## Root Cause Analysis
 
-## UI Before/After
+This is a **feature request**, not a bug. The system currently supports:
+- Users, projects, and issues with CRUD operations
+- Issue assignment, status updates, priority changes, archiving, and moving between projects
 
-![UI Before/After](./issue-4-ui.png)
+What is **missing**:
+- No way to attach human-readable discussion to issues
+- No audit trail of who changed what and when
+- Users cannot collaborate asynchronously on issue resolution
 
-## Task Breakdown
+## Proposed Solution
 
 ### Task 1: Comment Schema & Mutations (`reducer/src/lib.rs`)
 
-**Schema:**
+Add a `comments` table in `InitSchema`:
 ```sql
 CREATE TABLE IF NOT EXISTS comments (
     id TEXT PRIMARY KEY,
@@ -40,14 +70,16 @@ CREATE TABLE IF NOT EXISTS comments (
 )
 ```
 
-**Mutations:**
+Add mutation variants:
 - `AddComment { id, issue_id, author_id, body }`
 - `EditComment { id, body }`
 - `DeleteComment { id }`
 
+Each mutation performs the appropriate SQL `INSERT`, `UPDATE`, or `DELETE`.
+
 ### Task 2: Activity Log Schema & Mutations (`reducer/src/lib.rs`)
 
-**Schema:**
+Add an `activities` table in `InitSchema`:
 ```sql
 CREATE TABLE IF NOT EXISTS activities (
     id TEXT PRIMARY KEY,
@@ -60,39 +92,46 @@ CREATE TABLE IF NOT EXISTS activities (
 )
 ```
 
-**Mutations:**
+Add mutation variant:
 - `LogActivity { id, issue_id, actor_id, action, payload }`
 
-**Auto-logging:** Hook into `UpdateIssue`, `AssignIssue`, and `MoveIssues` mutations to automatically insert activity rows when issues change.
+Hook into existing mutations (`UpdateIssue`, `AssignIssue`, `MoveIssues`) to auto-insert activity rows after the primary mutation succeeds. The `payload` stores the previous/new values as JSON (e.g., `{"from":"backlog","to":"inprogress"}`).
 
-### Task 3: Comment UI Components (`app/routes/issues/components/comments/`)
+### Task 3: Comment UI Components (`app/components/comment-list/`, `comment-input/`, `comment-item/`)
 
-Create three new components:
-- **`CommentList.tsx`** — Scrollable list of comments for an issue, queries `comments` table via SQLSync
-- **`CommentInput.tsx`** — Textarea + submit button for new comments, uses `useMutate` for `AddComment`
-- **`CommentItem.tsx`** — Single comment with author avatar, timestamp, edit/delete actions. Inline editing support.
+Create three components following the existing component pattern (`index.tsx` + co-located styles via Tailwind):
 
-All styled with existing Tailwind dark theme classes.
+- **`CommentList`** — queries `comments` for an `issue_id`, renders a scrollable list
+- **`CommentInput`** — controlled textarea with submit button, calls `useMutate` with `AddComment`
+- **`CommentItem`** — displays author (via `UserIcon`), timestamp, body text, and edit/delete actions
 
-### Task 4: Activity Feed UI Component (`app/routes/issues/components/activity/`)
+Style with existing Tailwind dark theme (`bg-zinc-950`, `text-zinc-300`, `border-zinc-800`).
 
-Create:
-- **`ActivityFeed.tsx`** — Chronological list of activity events with icons for different action types (status change, assignment, move, comment). Queries `activities` table via SQLSync.
+### Task 4: Activity Feed Component (`app/components/activity-feed/`)
 
-### Task 5: Integration (`app/routes/issues/components/issue.tsx`)
+Create **`ActivityFeed`** — queries `activities` for an `issue_id`, renders a chronological timeline.
 
-- Add tab navigation (Details | Comments | Activity) below the issue body
-- Render `CommentList` + `CommentInput` in Comments tab
-- Render `ActivityFeed` in Activity tab
-- Pass `issue_id` to all child components
+Render different `action` types with friendly text:
+- `"status"` → "Alice changed status from Backlog → In Progress"
+- `"assign"` → "Bob assigned to Charlie"
+- `"move"` → "Alice moved to Project X"
+
+Group by date (Today, Yesterday, etc.) using `app/lib/date.ts` utilities.
+
+### Task 5: Integrate into Issue Detail Page
+
+Update **`app/routes/issues/id.tsx`** and **`app/routes/issues/components/issue.tsx`**:
+- Add a tab switcher: **Details** | **Comments (N)** | **Activity**
+- Pass `issue_id` through props to comment/activity components
+- Preserve existing layout and styling
 
 ### Task 6: TypeScript Types (`app/doctype.ts`)
 
-Extend the `Mutation` union:
+Add to the `Mutation` discriminated union:
 - `AddComment`, `EditComment`, `DeleteComment`
 - `LogActivity`
 
-Add new types:
+Add types:
 ```typescript
 export type Comment = {
   id: string;
@@ -115,41 +154,87 @@ export type Activity = {
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `reducer/src/lib.rs` | Add comments/activities tables, mutations, auto-logging hooks |
-| `app/doctype.ts` | Add new mutation variants and type exports |
-| `app/routes/issues/components/issue.tsx` | Add tabs, integrate comment + activity components |
-| `app/routes/issues/id.tsx` | Query for `project_id` to pass to issue component |
+| File | Task | Change |
+|------|------|--------|
+| `reducer/src/lib.rs` | 1, 2 | Add `comments` and `activities` tables to `InitSchema`; add 4 new `Mutation` variants; auto-log activities on `UpdateIssue`, `AssignIssue`, `MoveIssues` |
+| `app/doctype.ts` | 6 | Extend `Mutation` union; add `Comment` and `Activity` types |
+| `app/routes/issues/components/issue.tsx` | 5 | Add tabs for Comments/Activity; pass `issue_id` to child components |
+| `app/routes/issues/id.tsx` | 5 | No direct changes needed if `issue.tsx` receives `issue_id` |
 
 ## New Files
 
-| File | Purpose |
-|------|---------|
-| `app/routes/issues/components/comments/CommentList.tsx` | List comments for an issue |
-| `app/routes/issues/components/comments/CommentInput.tsx` | Input for new comments |
-| `app/routes/issues/components/comments/CommentItem.tsx` | Single comment display + actions |
-| `app/routes/issues/components/activity/ActivityFeed.tsx` | Activity timeline |
-| `app/lib/string.ts` | Date formatting utilities (relative time) |
+| File | Task | Description |
+|------|------|-------------|
+| `app/components/comment-list/index.tsx` | 3 | Comment list container |
+| `app/components/comment-input/index.tsx` | 3 | New comment textarea + submit |
+| `app/components/comment-item/index.tsx` | 3 | Single comment display with edit/delete |
+| `app/components/activity-feed/index.tsx` | 4 | Chronological activity timeline |
+| `app/lib/date.ts` | 3, 4 | Date formatting utilities (relative time, grouping) |
+| `tests/comment-components.test.tsx` | 3 | Tests for comment UI |
+| `tests/activity-feed.test.tsx` | 4 | Tests for activity feed |
+| `tests/reducer-schema.test.ts` | 1, 2 | Tests for reducer schema changes |
+| `tests/issue-integration.test.tsx` | 5 | Integration tests for issue page tabs |
+| `vitest.config.ts` | — | Vitest configuration |
+| `reducer/.cargo/config.toml` | 1, 2 | Cargo config for WASM target |
 
 ## Test Strategy
 
-This project has **no existing test infrastructure**. We will add:
+1. **Reducer schema tests** (`tests/reducer-schema.test.ts`):
+   - Verify `InitSchema` creates `comments` and `activities` tables
+   - Verify `AddComment` / `EditComment` / `DeleteComment` mutations work
+   - Verify activity auto-logging on `UpdateIssue`, `AssignIssue`, `MoveIssues`
 
-1. **Vitest** for frontend unit/component testing
-2. Tests for:
-   - `CommentItem` rendering and edit/delete actions
-   - `CommentInput` submit validation
-   - `ActivityFeed` chronological sorting
-   - Date formatting utilities
-3. **Reducer build verification** — `cargo build` must succeed for WASM target
+2. **Comment component tests** (`tests/comment-components.test.tsx`):
+   - `CommentList` renders comments sorted by `created_at`
+   - `CommentInput` calls `mutate` with correct payload on submit
+   - `CommentItem` shows edit/delete buttons; edit mode toggles textarea
+
+3. **Activity feed tests** (`tests/activity-feed.test.tsx`):
+   - Renders activities sorted chronologically
+   - Groups by date (Today, Yesterday)
+   - Correctly maps action types to friendly text
+
+4. **Integration tests** (`tests/issue-integration.test.tsx`):
+   - Tab switching works between Details/Comments/Activity
+   - Comment count shows in tab label
+   - Adding a comment updates the list and tab count
+
+5. **Date utility tests**:
+   - `formatRelativeTime` — "2h ago", "yesterday", date fallback
+   - `groupByDate` — groups items by "Today", "Yesterday", "MMM D"
 
 ## Risks
 
 | Risk | Mitigation |
-|------|------------|
-| SQLSync WASM reducer compilation failures | Verify `npm run build:reducer` after every Rust change |
-| Schema migration on existing documents | `InitSchema` is idempotent; new tables use `IF NOT EXISTS` |
-| Real-time sync of comments across clients | SQLSync handles this automatically via CRDT replication |
-| UI tab state persistence | Use React `useState` for active tab; no persistence needed |
-| Activity auto-logging creates duplicate entries | Use single INSERT per mutation handler |
+|------|-----------|
+| **Reducer compilation fails** (WASM target) | Add `.cargo/config.toml` with `target = "wasm32-unknown-unknown"`; ensure `wasm32-unknown-unknown` target is installed |
+| **Missing test infrastructure** | Add `vitest` + `@testing-library/react` + `jsdom`; configure `vitest.config.ts` with React/Vite support |
+| **Activity logging fails silently** | Log errors with `log::error!` if activity insert fails; don't block primary mutation |
+| **Date formatting timezone issues** | Use `Intl.DateTimeFormat` with explicit `timeZone: 'UTC'` in tests; use `toLocaleDateString` with consistent locale |
+| **Schema migration on existing docs** | `InitSchema` is idempotent (`CREATE TABLE IF NOT EXISTS`); existing docs will create tables on next `InitSchema` call. However, the app currently calls `InitSchema` once at startup via `DocumentProvider`, so new tables will be created automatically for new sessions. For existing open documents, a page refresh will trigger `InitSchema` again. |
+| **UI breaks on mobile** | Tabs are horizontal flex that wrap; ensure `flex-wrap` and minimum touch targets (44px) |
+
+## Acceptance Criteria
+
+- [ ] Users can add, edit, and delete comments on any issue
+- [ ] Comments appear in real-time across synced clients (SQLSync)
+- [ ] Activity feed shows status changes, assignments, and moves automatically
+- [ ] Comments and activities are sorted chronologically
+- [ ] The UI matches the existing dark theme
+- [ ] All new code is TypeScript-typed correctly
+- [ ] All tests pass (new + existing)
+- [ ] Type checking passes
+
+## Diagrams
+
+### System Architecture
+
+![System Architecture](./issue-4-architecture.png)
+
+### Data Flow
+
+![Data Flow](./issue-4-dataflow.png)
+
+### Before/After
+
+![Before/After](./issue-4-beforeafter.png)

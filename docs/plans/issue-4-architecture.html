@@ -10,50 +10,27 @@
     <div class="diagram-box renderer">
       <div class="diagram-box-title">RENDERER (React)</div>
       <div class="diagram-steps">
-        <div class="diagram-step"><span class="diagram-step-text">CommentList.tsx</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">CommentInput.tsx</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">CommentItem.tsx</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">ActivityFeed.tsx</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">issue.tsx (tabs)</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">CommentList</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">CommentInput</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">CommentItem</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">ActivityFeed</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Issue Detail Tabs</span></div>
       </div>
     </div>
     <div class="diagram-ipc">
       <div class="diagram-ipc-inner">
         <div class="diagram-ipc-line"></div>
-        <div class="diagram-ipc-label">SQLSync<br/>useQuery / useMutate</div>
+        <div class="diagram-ipc-label">SQLSync<br>Sync + Mutate</div>
         <div class="diagram-ipc-arrow"></div>
       </div>
     </div>
     <div class="diagram-box main">
-      <div class="diagram-box-title">WASM REDUCER (Rust)</div>
+      <div class="diagram-box-title">MAIN (WASM Reducer)</div>
       <div class="diagram-steps">
         <div class="diagram-step"><span class="diagram-step-text">comments table</span></div>
         <div class="diagram-step"><span class="diagram-step-text">activities table</span></div>
         <div class="diagram-step"><span class="diagram-step-text">AddComment / EditComment / DeleteComment</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">LogActivity (auto-hook)</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="diagram-row" style="margin-top: 24px;">
-    <div class="diagram-box renderer">
-      <div class="diagram-box-title">STATE LAYER</div>
-      <div class="diagram-steps">
-        <div class="diagram-step"><span class="diagram-step-text">Zustand-like local state (SQLSync)</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">Reactive queries re-render on mutation</span></div>
-      </div>
-    </div>
-    <div class="diagram-ipc">
-      <div class="diagram-ipc-inner">
-        <div class="diagram-ipc-line"></div>
-        <div class="diagram-ipc-label">CRDT<br/>Replication</div>
-        <div class="diagram-ipc-arrow"></div>
-      </div>
-    </div>
-    <div class="diagram-box main">
-      <div class="diagram-box-title">PEER CLIENTS</div>
-      <div class="diagram-steps">
-        <div class="diagram-step"><span class="diagram-step-text">Synced SQLite documents</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">Real-time comment visibility</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">LogActivity (auto on UpdateIssue, AssignIssue, MoveIssues)</span></div>
       </div>
     </div>
   </div>
