@@ -42,8 +42,9 @@
 ### Integration Fixes (this commit)
 
 1. **`app/routes/issues/id.tsx`**
-   - Added `useQuery` for comments and activities filtered by `issue_id`
-   - Passed queried data as props to `<Issue>` component
+   - Added `useQuery` for comments filtered by `issue_id` ordered by `created_at asc`
+   - Added `useQuery` for activities filtered by `issue_id` ordered by `created_at desc`
+   - Passed queried data and `mutate` as props to `<Issue>` component
 
 2. **`app/routes/issues/components/issue.tsx`**
    - Added optional `mutate` prop to `IssueProps` to fix TypeScript error (`props.issue.mutate` didn't exist on `Issue` type)
@@ -56,7 +57,10 @@
    - Updated tab-click tests to use regex `/Comments/` to match both `Comments` and `Comments (N)`
    - Added 2 new tests for comment count in tab label
 
-## Pre-existing Implementation (already in branch)
+4. **`tests/activity-feed.test.tsx` & `tests/date-utils.test.ts`**
+   - Fixed timezone flakiness: changed `toISOString().split("T")[0]` to `toLocaleDateString("en-CA")` to match `formatActivityDateKey`'s local-time behavior
+
+### Pre-existing Implementation (already in branch)
 
 The following was already implemented before this integration fix:
 
@@ -65,6 +69,14 @@ The following was already implemented before this integration fix:
 - **UI components**: `CommentList`, `CommentInput`, `CommentItem`, `ActivityFeed`
 - **Date utilities** (`app/lib/date.ts`): `groupActivitiesByDate`, `formatActivityDateKey`, `isToday`, `isYesterday`
 - **Tab UI** (`app/routes/issues/components/issue.tsx`): Details | Comments | Activity tabs
+
+## Build Verification
+
+| Check | Result |
+|-------|--------|
+| `npm run dev` | ✅ Starts on port 5173 |
+| `npm run build:reducer` | ✅ WASM compiles cleanly |
+| `npm run build` | ⚠️ Fails with pre-existing React Router SSR error (reproduces on `main`) |
 
 ## Browser E2E Status
 
