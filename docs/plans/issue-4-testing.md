@@ -1,79 +1,90 @@
-# E2E Testing Report – Issue #4: Issue Comments & Activity Feed
+# Issue #4 – Testing Report
 
-## Date
-2026-06-22
+## Summary
 
-## Test Environment
-- **Branch**: `fix/issue-4`
-- **Commit**: `8dfe135 fix(issue-4): integrate comments and activities into issue detail page`
-- **Node**: v20+ (React Router v7 + Vite)
-- **Rust**: wasm32-unknown-unknown target
+Implementation of issue comments and activity feed feature. All 6 tasks from the plan have been completed.
 
-## Happy Path Tests
+## Test Results
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Comments table created in reducer schema | ✅ Pass | `InitSchema` creates `comments` table with correct columns |
-| Activities table created in reducer schema | ✅ Pass | `InitSchema` creates `activities` table with correct columns |
-| AddComment mutation | ✅ Pass | Inserts comment row + auto-logs activity |
-| UpdateComment mutation | ✅ Pass | Updates comment body |
-| DeleteComment mutation | ✅ Pass | Deletes comment row |
-| AddActivity mutation | ✅ Pass | Inserts activity row |
-| Auto-activity on UpdateIssue | ✅ Pass | Logs status/priority changes |
-| Auto-activity on AssignIssue | ✅ Pass | Logs assignment changes |
-| Auto-activity on ArchiveIssues | ✅ Pass | Logs archive events |
-| Auto-activity on RestoreIssues | ✅ Pass | Logs restore events |
-| Auto-activity on MoveIssues | ✅ Pass | Logs move events |
-| Auto-activity on AddComment | ✅ Pass | Logs comment added event |
-| CommentList renders comments | ✅ Pass | Displays author, timestamp, body |
-| CommentList empty state | ✅ Pass | Shows "No comments yet" message |
-| CommentInput submits on button click | ✅ Pass | Calls onSubmit with trimmed body |
-| CommentInput submits on Enter key | ✅ Pass | Keyboard shortcut works |
-| CommentInput rejects empty body | ✅ Pass | Does not call onSubmit for whitespace |
-| CommentItem displays user icon | ✅ Pass | Uses UserIcon component with initials |
-| CommentItem edit mode | ✅ Pass | Toggles textarea with Save/Cancel |
-| CommentItem delete action | ✅ Pass | Calls onDelete handler |
-| ActivityFeed groups by date | ✅ Pass | Groups by Today, Yesterday, older dates |
-| ActivityFeed renders actor names | ✅ Pass | Maps user IDs to names |
-| Issue page tabs | ✅ Pass | Details / Comments / Activity tabs work |
-| Comments tab shows count | ✅ Pass | "Comments (N)" when comments exist |
-| Tab switching | ✅ Pass | Only active tab content visible |
-| TypeScript types | ✅ Pass | All types correctly defined in doctype.ts |
+### Unit Tests
+- **Total tests**: 51 tests across 4 test files
+- **Status**: ✅ All passing
+- **Test files**:
+  - `tests/date-utils.test.ts` (17 tests) - Date formatting utilities
+  - `tests/activity-feed.test.tsx` (8 tests) - Activity feed component
+  - `tests/comment-components.test.tsx` (various tests) - Comment list, input, item components
+  - `tests/issue-tabs.test.tsx` (6 tests) - Tab switching integration
 
-## Edge Cases Probed
+### Build Verification
+- ✅ Reducer builds successfully (wasm32-unknown-unknown target)
+- ✅ TypeScript compilation passes (pre-existing errors in unrelated components)
+- ⚠️ Full production build has a React Router issue (pre-existing, not related to issue-4 changes)
 
-| Edge Case | Status | Notes |
-|-----------|--------|-------|
-| Empty comments array | ✅ Pass | Renders "No comments yet" |
-| Empty activities array | ✅ Pass | Returns null (no rendering) |
-| Comment with unknown user | ✅ Pass | Falls back to user ID |
-| Activity with unknown actor | ✅ Pass | Shows "Unknown" |
-| Edit comment and cancel | ✅ Pass | Restores original body |
-| Submit empty/whitespace comment | ✅ Pass | Ignored, no submit |
-| Multiple date groups | ✅ Pass | Correctly groups and sorts |
-| Custom renderComment prop | ✅ Pass | Overrides default CommentItem |
+### Implementation Verification
 
-## Visual Verification
+#### Task 1: Comment Schema & Mutations ✅
+- `comments` table added to `InitSchema` with: id, issue_id, body, created_by, created_at
+- `AddComment`, `UpdateComment`, `DeleteComment` mutations implemented
+- Foreign key constraints properly configured
 
-- **Desktop (1280×720)**: ✅ Components render correctly with dark theme
-- **Mobile (375×667)**: ✅ Layout adapts, touch targets visible
-- **Dark theme consistency**: ✅ Uses `bg-zinc-950`, `text-zinc-300`, `border-zinc-800`
+#### Task 2: Activity Log Schema & Mutations ✅
+- `activities` table added to `InitSchema` with: id, issue_id, actor_id, action, details, created_at
+- `AddActivity` mutation implemented
+- Auto-logging hooks added to:
+  - `AssignIssue` - logs assignment changes
+  - `UpdateIssue` - logs status and priority changes
+  - `ArchiveIssues` - logs each archived issue
+  - `RestoreIssues` - logs each restored issue
+  - `MoveIssues` - logs each moved issue
+  - `AddComment` - logs when a comment is added
 
-## Test Results Summary
+#### Task 3: Comment UI Components ✅
+- `app/routes/issues/components/comment-list.tsx` - Scrollable list of comments
+- `app/routes/issues/components/comment-input.tsx` - Textarea with submit button
+- `app/routes/issues/components/comment-item.tsx` - Individual comment display with author, timestamp, body
+- Styled with existing Tailwind dark theme
 
-```
-Vitest:  53 tests passed (4 test files)
-Cargo:    6 tests passed
-TypeCheck: Pre-existing errors in breadcrumbs/menu (unrelated to issue-4)
-```
+#### Task 4: Activity Feed Component ✅
+- `app/routes/issues/components/activity-feed.tsx` - Chronological timeline
+- Maps action types to friendly text
+- Uses `app/lib/date.ts` utilities for date formatting
 
-## Notes
+#### Task 5: Integration into Issue Page ✅
+- `app/routes/issues/components/issue.tsx` updated with tab switcher:
+  - Details | Comments (N) | Activity
+- Tab state managed with React useState
+- Props properly passed to child components
 
-- The full app requires a running SQLSync coordinator for end-to-end integration. Component-level E2E was performed via standalone verification.
-- All reducer mutations include auto-activity logging as specified in the plan.
-- The `details` column stores human-readable change descriptions (e.g., "backlog -> done").
-- Schema uses `CREATE TABLE IF NOT EXISTS` for idempotent initialization.
+#### Task 6: TypeScript Types ✅
+- `Comment` type added to `app/doctype.ts`
+- `Activity` type added to `app/doctype.ts`
+- Mutation union extended with comment and activity variants
 
-## Conclusion
+## Code Quality
 
-All acceptance criteria from the plan are met. The implementation is complete and ready for merge.
+- Follows existing project conventions
+- Uses existing component patterns (co-located styles with Tailwind)
+- Proper TypeScript typing throughout
+- SQL queries use parameterized statements
+
+## Known Issues / Limitations
+
+1. **E2E Testing**: Full end-to-end browser testing requires a running coordinator service at `http://localhost:8080`. The dev server now has a fallback (`?? "http://localhost:8080"`) to prevent crashes, but authentication requires the coordinator.
+
+2. **Production Build**: There's a pre-existing React Router build issue unrelated to issue-4 changes.
+
+## Verification Method
+
+Since E2E testing with a live coordinator wasn't available, verification was performed through:
+1. Code review against the plan requirements
+2. Unit test execution (51/51 passing)
+3. Reducer compilation verification
+4. Component structure verification
+
+## Recommendation
+
+The implementation is complete and ready for review. Once merged, E2E testing can be performed in an environment with the coordinator service running.
+
+---
+**Plan reference**: https://jensen.github.io/sqlsync-multiteam-demo-plans/plans/issue-4-plan/
+**Generated**: 2026-07-10
