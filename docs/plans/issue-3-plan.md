@@ -4,205 +4,250 @@
 
 Add **labels (tags)** to issues: a team can define a set of colored labels, apply multiple labels to any issue, see them as chips, and filter the issue list by label. A core issue-tracker capability (à la Linear/GitHub) that's currently missing.
 
-**Motivation:** Teams need a lightweight way to categorize issues (`bug`, `feature`, `urgent`, `frontend`, …) beyond status/priority, to speed up triage and filtering.
+### Motivation
+
+Teams need a lightweight way to categorize issues (`bug`, `feature`, `urgent`, `frontend`, …) beyond status/priority, to speed up triage and filtering.
+
+### Scope / Requirements
+
+- **Define labels per team** — create, rename, recolor, delete in a management screen
+- **Apply labels to issues** — assign/unassign multiple labels on issue create and on the detail view
+- **See labels** — chips on the issue detail and on each issue-list row
+- **Filter** — narrow the issue list by one or more selected labels
+- Labels are scoped to a team (they live in that team's SQLSync document)
 
 ## Root Cause Analysis
 
-This is a **feature request**, not a bug. The current system lacks:
-- No label data model (tables for `labels` and `issue_labels`)
-- No mutations for label CRUD operations
-- No UI components for label management, picking, or display
-- No filtering capability by labels
+This is a **feature request**, not a bug fix. The current schema and UI lack:
+
+## Diagrams
+
+### Architecture Overview
+
+![Architecture Diagram](./issue-3-architecture.png)
+
+### Data Flow: Label Assignment
+
+![Data Flow Diagram](./issue-3-dataflow.png)
+
+### UI Mockups
+
+![UI Mockup](./issue-3-mockup.png)
 
 ## Proposed Solution
 
-### Data Model
+1. **No labels table** — The database schema has `users`, `projects`, `issues`, `comments`, and `activities` tables, but no `labels` or `issue_labels` tables
+2. **No Mutation variants** — The Rust reducer's `Mutation` enum has no label-related operations
+3. **No UI components** — No label picker, label chips, or label management interface
+4. **No filtering** — The issue list cannot be filtered by labels
 
-Add two new tables to the schema:
+## Proposed Solution
+
+### Database Schema Changes
+
+Add two new tables to the SQLSync schema:
 
 ```sql
--- Label definition (scoped to team document / SQLSync journal)
-CREATE TABLE IF NOT EXISTS labels (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    color TEXT NOT NULL,
-    created_at TEXT NOT NULL
+-- Labels table: stores label definitions per team
+create table if not exists labels (
+    id text primary key,
+    name text not null,
+    color text not null,  -- hex color like "#FF5733"
+    team_id text not null,
+    created_at text not null,
+    unique(name, team_id)  -- prevent duplicate label names within a team
 );
 
--- Many-to-many relationship between issues and labels
-CREATE TABLE IF NOT EXISTS issue_labels (
-    issue_id TEXT NOT NULL,
-    label_id TEXT NOT NULL,
-    PRIMARY KEY (issue_id, label_id),
-    FOREIGN KEY (issue_id) REFERENCES issues(id),
-    FOREIGN KEY (label_id) REFERENCES labels(id)
+-- Junction table: many-to-many relationship between issues and labels
+create table if not exists issue_labels (
+    issue_id text not null,
+    label_id text not null,
+    created_at text not null,
+    primary key (issue_id, label_id),
+    foreign key (issue_id) references issues(id) on delete cascade,
+    foreign key (label_id) references labels(id) on delete cascade
 );
 ```
 
-Labels are scoped to a team because each team has its own SQLSync journal (`auth.organizations[].document`). No `team_id` column is required.
+### Reducer Mutations (Rust → WASM)
 
-### Mutations (Rust + TypeScript)
+Add new `Mutation` enum variants in `reducer/src/lib.rs`:
 
-**Rust (`reducer/src/lib.rs`):**
 ```rust
 enum Mutation {
-    // ... existing mutations ...
-
+    // ... existing variants ...
+    
     // Label management
-    AddLabel { id: String, name: String, color: String },
-    RemoveLabel { id: String },  // Also deletes issue_label rows
-
-    // Label assignment
-    AddIssueLabel { issue_id: String, label_id: String },
-    RemoveIssueLabel { issue_id: String, label_id: String },
+    AddLabel {
+        id: String,
+        name: String,
+        color: String,
+        team_id: String,
+    },
+    UpdateLabel {
+        id: String,
+        name: Option<String>,
+        color: Option<String>,
+    },
+    RemoveLabel {
+        id: String,
+    },
+    
+    // Issue-label assignments
+    AddIssueLabel {
+        issue_id: String,
+        label_id: String,
+    },
+    RemoveIssueLabel {
+        issue_id: String,
+        label_id: String,
+    },
 }
 ```
 
-**TypeScript (`app/doctype.ts`):**
-```typescript
-type Mutation =
-  // ... existing mutations ...
-  | { tag: "AddLabel"; id: string; name: string; color: string }
-  | { tag: "RemoveLabel"; id: string }
-  | { tag: "AddIssueLabel"; issue_id: string; label_id: string }
-  | { tag: "RemoveIssueLabel"; issue_id: string; label_id: string };
+### Frontend Components
 
-type Label = {
-  id: string;
-  name: string;
-  color: string;
-  created_at: string;
-};
-```
+#### 1. Label Management Screen
+- **Location**: `app/routes/teams/settings/labels.tsx` (new file)
+- **Features**:
+  - List all labels for the current team
+  - Create new label (name + color picker)
+  - Edit existing label (rename, recolor)
+  - Delete label (cascades to remove from all issues)
 
-### UI Components
+#### 2. Label Picker Component
+- **Location**: `app/routes/issues/components/label-picker.tsx` (new file)
+- **Usage**: Embedded in create issue form and issue details view
+- **Features**:
+  - Multi-select dropdown
+  - Shows label chips with colors
+  - Search/filter labels by name
+  - Create new label inline (optional)
 
-1. **Label Management Screen** (`app/routes/teams/labels/index.tsx`)
-   - List all labels for the team
-   - Create new label (name + color picker)
-   - Edit existing label (rename, recolor)
-   - Delete label (with confirmation)
+#### 3. Label Chips Display
+- **Location**: Update `app/routes/issues/components/issue.tsx` and `list.tsx`
+- **Features**:
+  - Render label chips with background color matching label definition
+  - Truncate with "+N" if too many labels
+  - Click to remove label (in detail view)
 
-2. **Label Picker Component** (`app/routes/issues/components/label-picker.tsx`)
-   - Multi-select chip-based picker
-   - Shows available labels with colored chips
-   - Used in issue create and issue detail views
-   - The base `Select` component is single-select only, so the picker will be a custom popover with checkbox items.
+#### 4. Label Filter
+- **Location**: Update `app/routes/issues/components/list.tsx`
+- **Features**:
+  - Filter bar with label multi-select
+  - Show active label filters as chips
+  - Clear all filters button
 
-3. **Label Chip Component** (`app/routes/issues/components/label-chip.tsx`)
-   - Inline colored pill showing label name
-   - Optional remove button
-   - Appears on issue list rows and issue detail view
+### Files to Modify
 
-4. **Label Filter** (`app/routes/issues/components/label-filter.tsx`)
-   - Filter issue list by one or more selected labels
-   - Multi-select with label chips
+| File | Changes |
+|------|---------|
+| `reducer/src/lib.rs` | Add `labels` and `issue_labels` tables to `InitSchema`; add 5 new Mutation variants with handlers |
+| `app/routes/issues/components/create.tsx` | Add label picker to the create form |
+| `app/routes/issues/components/details.tsx` | Add label picker section for editing labels on existing issue |
+| `app/routes/issues/components/list.tsx` | Add label filter bar; show label chips on each issue row |
+| `app/routes/issues/components/issue.tsx` | Show label chips in issue detail view |
 
-## Files to Modify
+### New Files
 
-### Backend (Rust WASM Reducer)
-- `reducer/src/lib.rs` - Add label mutations and schema
-
-### TypeScript Types
-- `app/doctype.ts` - Add `Label` type and mutation variants
-
-### New UI Components
-- `app/routes/issues/components/label-picker.tsx` - Multi-select for labels
-- `app/routes/issues/components/label-chip.tsx` - Colored label display
-- `app/routes/issues/components/label-filter.tsx` - Filter by labels
-- `app/routes/teams/labels/index.tsx` - Label management screen
-- `app/routes/teams/labels/new.tsx` - Create label modal
-
-### Modified UI Components
-- `app/routes/issues/components/create.tsx` - Add label picker to create form
-- `app/routes/issues/components/details.tsx` - Add label management to issue details
-- `app/routes/issues/components/list.tsx` - Show label chips on rows, add filter
-- `app/routes/issues/id.tsx` - Load labels for issue detail
-- `app/routes/teams/issues.tsx` - Query labels and pass to list + filter
-
-### Tests
-- `reducer/src/lib.rs` - Reducer unit tests for label mutations
-- `tests/label-components.test.tsx` - New component tests for label picker/chip/filter
+| File | Purpose |
+|------|---------|
+| `app/routes/issues/components/label-picker.tsx` | Reusable multi-select label picker component |
+| `app/routes/teams/settings/labels.tsx` | Label management screen (CRUD for labels) |
+| `app/components/shared/label-chip.tsx` | Reusable label chip UI component |
+| `tests/labels.test.tsx` | Unit tests for label functionality |
+| `tests/issue-labels.test.tsx` | Integration tests for issue-label assignments |
 
 ## Test Strategy
 
 ### Unit Tests
-1. **Reducer tests** (`reducer/src/lib.rs`):
-   - `InitSchema` creates `labels` and `issue_labels` tables
-   - `AddLabel`, `RemoveLabel`, `AddIssueLabel`, `RemoveIssueLabel` mutations succeed and generate correct SQL
-   - `RemoveLabel` cascade-deletes from `issue_labels`
 
-2. **Component tests** (`tests/label-components.test.tsx`):
-   - Label picker multi-select behavior
-   - Label chip rendering with correct colors
-   - Filter applies correct label IDs
-   - Follow existing pattern: `vi.mock("~/context/document.context")`, bare `render()`, `fireEvent`
+1. **Label picker component**:
+   - Renders available labels with correct colors
+   - Allows multi-select
+   - Shows selected labels as chips
+   - Remove button works
 
-### Integration / Manual Testing Checklist
-- [ ] Create/rename/recolor/delete labels in management screen
-- [ ] Add/remove multiple labels on issue create
-- [ ] Add/remove labels from issue detail view
-- [ ] Label chips show on issue detail and list rows
-- [ ] Filter issue list by one or more labels
-- [ ] Deleting a label removes it from all issues
-- [ ] Labels sync across clients (two tabs)
-- [ ] Labels are isolated per team
+2. **Label chip component**:
+   - Displays label name and color correctly
+   - Truncates long names
+   - Remove button appears when clickable
+
+3. **Label management screen**:
+   - Create label validates name/color
+   - Edit label updates correctly
+   - Delete label removes from all issues
+
+### Integration Tests
+
+1. **Create issue with labels**:
+   - Select labels during creation
+   - Verify labels appear on issue after save
+
+2. **Edit issue labels**:
+   - Add labels to existing issue
+   - Remove labels from existing issue
+   - Verify changes persist
+
+3. **Filter issues by label**:
+   - Apply label filter
+   - Verify only matching issues shown
+   - Clear filter shows all issues
+
+4. **Label deletion cascade**:
+   - Delete a label
+   - Verify removed from all issues
+   - Verify label no longer in picker
+
+### Edge Cases
+
+- Empty label name validation
+- Duplicate label name prevention (per team)
+- Maximum labels per issue (if any)
+- Color validation (hex format)
+- Concurrent label modifications (sync across clients)
 
 ## Risks
 
-1. **Schema migration**: The system uses `create table if not exists` - adding tables is safe, but existing documents won't have label data until `InitSchema` runs again. For dev/demo purposes this is acceptable.
+| Risk | Mitigation |
+|------|------------|
+| **Schema migration** — Existing teams need new tables | `InitSchema` uses `create table if not exists`, safe to run on existing databases |
+| **Sync conflicts** — Multiple clients modifying labels | SQLSync handles conflict resolution; junction table design avoids write conflicts |
+| **Performance** — Many labels per issue could slow queries | Add indexes on `issue_labels(issue_id, label_id)`; limit display to first N labels with "+X more" |
+| **Color accessibility** — Poor contrast with text | Use white text on dark colors, black text on light colors (calculate luminance) |
+| **Cross-team isolation** — Labels must not leak between teams | All queries include `team_id` filter; foreign keys enforce referential integrity |
 
-2. **Cascade deletes**: SQLite doesn't enforce FK cascade by default. The `RemoveLabel` mutation must explicitly delete from `issue_labels` table.
+## Implementation Plan
 
-3. **Performance**: Filtering by multiple labels requires JOINs. For large datasets, may need indexing on `issue_labels(issue_id, label_id)`.
+### Phase 1: Backend Foundation
+1. Add schema tables to `InitSchema` mutation
+2. Add 5 new Mutation variants to Rust reducer
+3. Implement reducer handlers for each mutation
+4. Write unit tests for reducer logic
 
-4. **Color accessibility**: Users may pick low-contrast colors. Consider enforcing minimum contrast ratios or providing preset accessible color palettes.
+### Phase 2: Core UI Components
+1. Create `LabelChip` component
+2. Create `LabelPicker` component
+3. Integrate picker into issue create form
+4. Integrate picker into issue details view
 
-5. **Sync conflicts**: Two users editing the same label simultaneously could cause conflicts. SQLSync's CRDT approach should handle this, but edge cases may exist.
+### Phase 3: Label Management
+1. Create label management screen
+2. Implement CRUD operations
+3. Add color picker UI
+4. Handle delete cascade
 
-## Architecture Diagram
+### Phase 4: Filtering & Display
+1. Add label chips to issue list rows
+2. Add label filter bar to issue list
+3. Add label chips to issue detail view
+4. Implement filter state management
 
-![Data Model: Labels](./issue-3-data-model.png)
-
-## UI Flow
-
-![UI Flow: Labels Feature](./issue-3-ui-flow.png)
-
-## UI Mockup
-
-![UI Mockup: Labels Feature](./issue-3-mockup.png)
-
-## Implementation Sequence
-
-1. **Phase 1: Schema + Mutations** (Backend)
-   - Add `labels` and `issue_labels` tables to `InitSchema`
-   - Implement label CRUD mutations in Rust
-   - Add TypeScript types in `doctype.ts`
-
-2. **Phase 2: Label Management UI** (Team Settings)
-   - Create label management route and screen
-   - Label list with edit/delete
-   - Create new label modal with color picker
-
-3. **Phase 3: Label Picker + Chips** (Components)
-   - Create reusable `LabelChip` component
-   - Create custom `LabelPicker` multi-select component
-
-4. **Phase 4: Integration** (Issue Create/Detail)
-   - Add label picker to issue create form
-   - Add label management to issue detail view
-   - Show label chips on issue detail
-
-5. **Phase 5: List + Filter** (Issue List)
-   - Show label chips on issue list rows
-   - Add label filter component
-   - Implement SQL filtering by labels
-
-6. **Phase 6: Testing + Polish**
-   - Write unit/integration tests
-   - Test sync across clients
-   - Accessibility review (color contrast)
-   - Performance optimization (indexes if needed)
+### Phase 5: Testing & Polish
+1. Write comprehensive unit tests
+2. Write integration tests
+3. Test sync across multiple clients
+4. Polish UI (animations, error states, loading states)
 
 ## Acceptance Criteria
 
@@ -219,3 +264,76 @@ type Label = {
 - Label-based automation / saved views
 - Cross-team / global labels
 - Bulk label editing from list multi-select
+
+## Diagrams
+
+### Data Flow: Label Creation and Assignment
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌──────────────┐
+│   User UI   │────▶│  LabelPicker │────▶│  Reducer    │────▶│  SQLSync DB  │
+│             │     │  Component   │     │  (Rust/WASM)│     │              │
+└─────────────┘     └──────────────┘     └─────────────┘     └──────────────┘
+       │                    │                    │                    │
+       │ 1. Click "Add Label"                    │                    │
+       │                    │                    │                    │
+       │                    │ 2. Dispatch mutation                    │
+       │                    │    AddIssueLabel {                      │
+       │                    │      issue_id, label_id }               │
+       │                    │                    │                    │
+       │                    │                    │ 3. INSERT into     │
+       │                    │                    │    issue_labels    │
+       │                    │                    │                    │
+       │                    │ 4. Broadcast change◀───────────────────│
+       │                    │    (SQLSync sync)  │                    │
+       │ 5. Re-render       │◀───────────────────│                    │
+       │    label chips     │                    │                    │
+       │◀───────────────────│                    │                    │
+```
+
+### State Machine: Label Management
+
+```
+┌──────────┐     create      ┌──────────┐     edit       ┌──────────┐
+│   No     │────────────────▶│  Label   │───────────────▶│  Label   │
+│  Labels  │                 │  Exists  │                │  Updated │
+└──────────┘                 └──────────┘                └──────────┘
+                                  │                          │
+                                  │ delete                   │ delete
+                                  ▼                          ▼
+                            ┌──────────┐              ┌──────────┐
+                            │  Label   │              │  Label   │
+                            │ Deleted  │◀─────────────│ Removed  │
+                            └──────────┘              └──────────┘
+```
+
+## Technical Notes
+
+### Color Storage
+
+Store colors as hex strings (`#RRGGBB`) for:
+- Simple serialization
+- Direct use in CSS `background-color`
+- Easy color picker integration
+
+### Label Ordering
+
+Labels should be displayed in:
+1. Creation order (default)
+2. Or alphabetically by name (optional)
+
+Use `created_at` timestamp for ordering.
+
+### Cascade Delete
+
+When a label is deleted:
+1. Remove from `labels` table
+2. SQLite `ON DELETE CASCADE` removes all `issue_labels` rows
+3. UI updates automatically via SQLSync subscription
+
+### Sync Strategy
+
+SQLSync handles all sync automatically:
+- Mutations are serialized and broadcast
+- Conflicts resolved by last-write-wins (or custom logic if needed)
+- All clients see consistent state eventually

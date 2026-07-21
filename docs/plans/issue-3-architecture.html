@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Issue #3 - Labels Architecture</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    
+    .diagram {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .diagram-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    
+    .diagram-row {
+      display: flex;
+      align-items: stretch;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .diagram-box {
+      background: #242424;
+      border: 2px solid #3a3a3a;
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1;
+    }
+    
+    .diagram-box.main {
+      border-color: #8b5cf6;
+      background: linear-gradient(135deg, #2a1f3d 0%, #242424 100%);
+    }
+    
+    .diagram-box.renderer {
+      border-color: #10b981;
+      background: linear-gradient(135deg, #1f3d2a 0%, #242424 100%);
+    }
+    
+    .diagram-box.database {
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, #1f2a3d 0%, #242424 100%);
+    }
+    
+    .diagram-box-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #3a3a3a;
+    }
+    
+    .diagram-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .diagram-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      border: 1px solid #3a3a3a;
+    }
+    
+    .diagram-step-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #3a3a3a;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    
+    .diagram-step-text {
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+    
+    .diagram-step-code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      background: #1a1a1a;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: #10b981;
+    }
+    
+    .diagram-ipc {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 120px;
+    }
+    
+    .diagram-ipc-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .diagram-ipc-line {
+      width: 4px;
+      height: 60px;
+      background: linear-gradient(to bottom, #8b5cf6, #3b82f6);
+      border-radius: 2px;
+    }
+    
+    .diagram-ipc-label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #2a2a2a;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #3a3a3a;
+    }
+    
+    .diagram-ipc-arrow {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 12px solid #3b82f6;
+    }
+    
+    .diagram-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      background: #242424;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .diagram-table th {
+      background: #2a2a2a;
+      padding: 16px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+    
+    .diagram-table td {
+      padding: 16px;
+      font-size: 14px;
+      color: #e0e0e0;
+      border-bottom: 1px solid #3a3a3a;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    
+    .diagram-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .diagram-table tr:hover {
+      background: #2a2a2a;
+    }
+    
+    .table-caption {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin: 30px 0 16px 0;
+    }
+    
+    .highlight {
+      color: #10b981;
+      font-weight: 600;
+    }
+    
+    .warning {
+      color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <div class="diagram">
+    <div class="diagram-title">Labels Feature Architecture</div>
+    
+    <!-- Row 1: High-level flow -->
+    <div class="diagram-row">
+      <div class="diagram-box renderer">
+        <div class="diagram-box-title">RENDERER (React UI)</div>
+        <div class="diagram-steps">
+          <div class="diagram-step">
+            <span class="diagram-step-num">1</span>
+            <span class="diagram-step-text">User clicks label picker</span>
+          </div>
+          <div class="diagram-step">
+            <span class="diagram-step-num">2</span>
+            <span class="diagram-step-text">Select labels (multi-select)</span>
+          </div>
+          <div class="diagram-step">
+            <span class="diagram-step-num">3</span>
+            <span class="diagram-step-text">Dispatch <code class="diagram-step-code">AddIssueLabel</code> mutation</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="diagram-ipc">
+        <div class="diagram-ipc-inner">
+          <div class="diagram-ipc-line"></div>
+          <div class="diagram-ipc-label">SQLSync Mutation</div>
+          <div class="diagram-ipc-arrow"></div>
+        </div>
+      </div>
+      
+      <div class="diagram-box main">
+        <div class="diagram-box-title">MAIN PROCESS (Rust Reducer)</div>
+        <div class="diagram-steps">
+          <div class="diagram-step">
+            <span class="diagram-step-num">4</span>
+            <span class="diagram-step-text">Deserialize mutation from WASM</span>
+          </div>
+          <div class="diagram-step">
+            <span class="diagram-step-num">5</span>
+            <span class="diagram-step-text">Execute SQL: INSERT into <code class="diagram-step-code">issue_labels</code></span>
+          </div>
+          <div class="diagram-step">
+            <span class="diagram-step-num">6</span>
+            <span class="diagram-step-text">Return success to SQLSync</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="diagram-ipc">
+        <div class="diagram-ipc-inner">
+          <div class="diagram-ipc-line"></div>
+          <div class="diagram-ipc-label">Broadcast</div>
+          <div class="diagram-ipc-arrow"></div>
+        </div>
+      </div>
+      
+      <div class="diagram-box database">
+        <div class="diagram-box-title">SQLSYNC DB (SQLite)</div>
+        <div class="diagram-steps">
+          <div class="diagram-step">
+            <span class="diagram-step-num">7</span>
+            <span class="diagram-step-text">Persist to <code class="diagram-step-code">issue_labels</code> table</span>
+          </div>
+          <div class="diagram-step">
+            <span class="diagram-step-num">8</span>
+            <span class="diagram-step-text">Broadcast change to all clients</span>
+          </div>
+          <div class="diagram-step">
+            <span class="diagram-step-num">9</span>
+            <span class="diagram-step-text">UI re-renders with new labels</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Schema tables -->
+    <div class="table-caption">Database Schema (New Tables)</div>
+    <table class="diagram-table">
+      <thead>
+        <tr>
+          <th>Table</th>
+          <th>Columns</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="highlight">labels</td>
+          <td>
+            id (PK), name, color, team_id, created_at<br>
+            <span style="color: #888; font-size: 12px;">UNIQUE(name, team_id)</span>
+          </td>
+          <td>Label definitions per team</td>
+        </tr>
+        <tr>
+          <td class="highlight">issue_labels</td>
+          <td>
+            issue_id (FK), label_id (FK), created_at<br>
+            <span style="color: #888; font-size: 12px;">PRIMARY KEY (issue_id, label_id)</span><br>
+            <span style="color: #888; font-size: 12px;">ON DELETE CASCADE</span>
+          </td>
+          <td>Many-to-many junction table</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <!-- Mutation variants -->
+    <div class="table-caption">New Mutation Variants (Rust Enum)</div>
+    <table class="diagram-table">
+      <thead>
+        <tr>
+          <th>Mutation</th>
+          <th>Parameters</th>
+          <th>SQL Operation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="highlight">AddLabel</td>
+          <td>id, name, color, team_id</td>
+          <td>INSERT into labels</td>
+        </tr>
+        <tr>
+          <td class="highlight">UpdateLabel</td>
+          <td>id, name?, color?</td>
+          <td>UPDATE labels SET ...</td>
+        </tr>
+        <tr>
+          <td class="highlight">RemoveLabel</td>
+          <td>id</td>
+          <td>DELETE from labels (CASCADE)</td>
+        </tr>
+        <tr>
+          <td class="warning">AddIssueLabel</td>
+          <td>issue_id, label_id</td>
+          <td>INSERT into issue_labels</td>
+        </tr>
+        <tr>
+          <td class="warning">RemoveIssueLabel</td>
+          <td>issue_id, label_id</td>
+          <td>DELETE from issue_labels</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

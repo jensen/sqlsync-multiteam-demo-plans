@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Issue #3 - Label Assignment Data Flow</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    
+    .diagram {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .diagram-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+    
+    .diagram-flow-horizontal {
+      display: flex;
+      align-items: stretch;
+      gap: 16px;
+      margin-bottom: 50px;
+      padding: 30px;
+      background: #242424;
+      border-radius: 12px;
+      border: 2px solid #3a3a3a;
+    }
+    
+    .diagram-flow-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+      min-height: 120px;
+      padding: 20px;
+      background: #2a2a2a;
+      border: 2px solid #3a3a3a;
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .diagram-flow-node.user {
+      border-color: #10b981;
+      background: linear-gradient(135deg, #1f3d2a 0%, #2a2a2a 100%);
+    }
+    
+    .diagram-flow-node.ui {
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, #1f2a3d 0%, #2a2a2a 100%);
+    }
+    
+    .diagram-flow-node.reducer {
+      border-color: #8b5cf6;
+      background: linear-gradient(135deg, #2a1f3d 0%, #2a2a2a 100%);
+    }
+    
+    .diagram-flow-node.db {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, #3d2a1f 0%, #2a2a2a 100%);
+    }
+    
+    .diagram-flow-node.sync {
+      border-color: #ec4899;
+      background: linear-gradient(135deg, #3d1f2a 0%, #2a2a2a 100%);
+    }
+    
+    .diagram-flow-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    
+    .diagram-flow-sublabel {
+      font-size: 11px;
+      color: #888;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      background: #1a1a1a;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+    
+    .diagram-flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #666;
+      font-weight: 300;
+    }
+    
+    .flow-description {
+      background: #242424;
+      border: 1px solid #3a3a3a;
+      border-radius: 10px;
+      padding: 24px;
+      margin-top: 30px;
+    }
+    
+    .flow-description h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 12px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      border-left: 3px solid #3a3a3a;
+    }
+    
+    .flow-step.user { border-left-color: #10b981; }
+    .flow-step.ui { border-left-color: #3b82f6; }
+    .flow-step.reducer { border-left-color: #8b5cf6; }
+    .flow-step.db { border-left-color: #f59e0b; }
+    .flow-step.sync { border-left-color: #ec4899; }
+    
+    .flow-step-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #3a3a3a;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    
+    .flow-step-text {
+      font-size: 14px;
+      color: #e0e0e0;
+      line-height: 1.5;
+    }
+    
+    .flow-step-code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      background: #1a1a1a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #10b981;
+    }
+    
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 30px;
+      padding: 20px;
+      background: #242424;
+      border-radius: 10px;
+      border: 1px solid #3a3a3a;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    
+    .legend-color.user { background: #10b981; }
+    .legend-color.ui { background: #3b82f6; }
+    .legend-color.reducer { background: #8b5cf6; }
+    .legend-color.db { background: #f59e0b; }
+    .legend-color.sync { background: #ec4899; }
+    
+    .legend-text {
+      font-size: 13px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="diagram">
+    <div class="diagram-title">Data Flow: Assign Label to Issue</div>
+    
+    <!-- Main flow -->
+    <div class="diagram-flow-horizontal">
+      <div class="diagram-flow-node user">
+        <div class="diagram-flow-label">User</div>
+        <div class="diagram-flow-sublabel">Clicks label picker</div>
+      </div>
+      
+      <div class="diagram-flow-arrow">→</div>
+      
+      <div class="diagram-flow-node ui">
+        <div class="diagram-flow-label">LabelPicker UI</div>
+        <div class="diagram-flow-sublabel">Multi-select component</div>
+      </div>
+      
+      <div class="diagram-flow-arrow">→</div>
+      
+      <div class="diagram-flow-node ui">
+        <div class="diagram-flow-label">IssueStore</div>
+        <div class="diagram-flow-sublabel">addIssueLabel()</div>
+      </div>
+      
+      <div class="diagram-flow-arrow">→</div>
+      
+      <div class="diagram-flow-node reducer">
+        <div class="diagram-flow-label">Rust Reducer</div>
+        <div class="diagram-flow-sublabel">AddIssueLabel mutation</div>
+      </div>
+      
+      <div class="diagram-flow-arrow">→</div>
+      
+      <div class="diagram-flow-node db">
+        <div class="diagram-flow-label">SQLite DB</div>
+        <div class="diagram-flow-sublabel">INSERT issue_labels</div>
+      </div>
+      
+      <div class="diagram-flow-arrow">→</div>
+      
+      <div class="diagram-flow-node sync">
+        <div class="diagram-flow-label">SQLSync</div>
+        <div class="diagram-flow-sublabel">Broadcast change</div>
+      </div>
+      
+      <div class="diagram-flow-arrow">→</div>
+      
+      <div class="diagram-flow-node ui">
+        <div class="diagram-flow-label">UI Re-render</div>
+        <div class="diagram-flow-sublabel">Show label chips</div>
+      </div>
+    </div>
+    
+    <!-- Detailed steps -->
+    <div class="flow-description">
+      <h3>Step-by-Step Breakdown</h3>
+      <div class="flow-steps">
+        <div class="flow-step user">
+          <span class="flow-step-num">1</span>
+          <span class="flow-step-text">
+            <strong>User action:</strong> User opens issue details and clicks the "Add Label" button in the label picker
+          </span>
+        </div>
+        
+        <div class="flow-step ui">
+          <span class="flow-step-num">2</span>
+          <span class="flow-step-text">
+            <strong>UI component:</strong> <code class="flow-step-code">LabelPicker</code> displays available labels for the team with color-coded chips
+          </span>
+        </div>
+        
+        <div class="flow-step ui">
+          <span class="flow-step-num">3</span>
+          <span class="flow-step-text">
+            <strong>State update:</strong> User selects labels → <code class="flow-step-code">IssueStore.addIssueLabel(issueId, labelId)</code> is called
+          </span>
+        </div>
+        
+        <div class="flow-step reducer">
+          <span class="flow-step-num">4</span>
+          <span class="flow-step-text">
+            <strong>Reducer execution:</strong> Rust reducer receives <code class="flow-step-code">AddIssueLabel { issue_id, label_id }</code> mutation via WASM bridge
+          </span>
+        </div>
+        
+        <div class="flow-step db">
+          <span class="flow-step-num">5</span>
+          <span class="flow-step-text">
+            <strong>Database operation:</strong> Reducer executes SQL: <code class="flow-step-code">INSERT INTO issue_labels (issue_id, label_id, created_at) VALUES (?, ?, ?)</code>
+          </span>
+        </div>
+        
+        <div class="flow-step sync">
+          <span class="flow-step-num">6</span>
+          <span class="flow-step-text">
+            <strong>Sync broadcast:</strong> SQLSync detects change to <code class="flow-step-code">issue_labels</code> table and broadcasts to all connected clients
+          </span>
+        </div>
+        
+        <div class="flow-step ui">
+          <span class="flow-step-num">7</span>
+          <span class="flow-step-text">
+            <strong>UI update:</strong> All clients receive change notification → <code class="flow-step-code">LabelChip</code> components render with new label data
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color user"></div>
+        <span class="legend-text">User Action</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color ui"></div>
+        <span class="legend-text">UI Component</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color reducer"></div>
+        <span class="legend-text">Rust Reducer</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color db"></div>
+        <span class="legend-text">Database</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color sync"></div>
+        <span class="legend-text">Sync Layer</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,371 +1,722 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Issue #3 - Label Feature UI Mockup</title>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #09090b;
-      color: #e4e4e7;
+      background: #1a1a1a;
+      color: #e0e0e0;
       padding: 40px;
-      line-height: 1.4;
+      min-height: 100vh;
     }
+    
+    .mockup-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .mockup-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    
     .scenario {
       margin-bottom: 60px;
     }
+    
     .scenario-title {
-      color: #a1a1aa;
-      font-size: 12px;
+      color: #888;
+      font-size: 14px;
       margin-bottom: 16px;
       text-transform: uppercase;
       letter-spacing: 1px;
+      font-weight: 600;
     }
-    .app-frame {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      max-width: 900px;
+    
+    /* Issue Detail View */
+    .issue-detail {
+      background: #242424;
+      border-radius: 12px;
+      border: 1px solid #3a3a3a;
       overflow: hidden;
     }
-    .header {
-      height: 40px;
-      border-bottom: 1px solid #27272a;
+    
+    .issue-header {
+      padding: 24px;
+      border-bottom: 1px solid #3a3a3a;
+      background: #2a2a2a;
+    }
+    
+    .issue-title-text {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    
+    .issue-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .issue-id {
+      font-size: 13px;
+      color: #888;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-badge.open {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .priority-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .issue-body {
+      padding: 24px;
+    }
+    
+    /* Label Section */
+    .label-section {
+      margin-bottom: 24px;
+    }
+    
+    .label-section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      margin-bottom: 12px;
     }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    
+    .label-section-title {
       font-size: 13px;
-      color: #a1a1aa;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .btn {
-      height: 24px;
-      padding: 0 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      border: none;
-      cursor: default;
+    
+    .add-label-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-    }
-    .btn-primary { background: #7c3aed; color: white; }
-    .btn-outline { background: transparent; border: 1px solid #3f3f46; color: #d4d4d8; }
-    .toolbar {
-      height: 40px;
-      border-bottom: 1px solid #27272a;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-    }
-    .list-row {
-      display: flex;
-      align-items: center;
-      padding: 10px 16px;
-      border-bottom: 1px solid #27272a;
-      gap: 12px;
+      padding: 6px 12px;
+      background: #3a3a3a;
+      border: 1px solid #4a4a4a;
+      border-radius: 6px;
+      color: #e0e0e0;
       font-size: 13px;
-    }
-    .list-row:hover { background: #18181b; }
-    .issue-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chip-row { display: flex; align-items: center; gap: 6px; }
-    .label-chip {
-      height: 20px;
-      padding: 0 8px;
-      border-radius: 4px;
-      font-size: 11px;
       font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .filter-bar {
+    
+    .add-label-btn:hover {
+      background: #4a4a4a;
+      border-color: #5a5a5a;
+    }
+    
+    .add-label-btn::before {
+      content: '+';
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    /* Label Chips */
+    .label-chips {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
     }
-    .filter-chip {
-      height: 24px;
-      padding: 0 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid #3f3f46;
-      background: #27272a;
-      color: #d4d4d8;
-    }
-    .content {
-      padding: 24px;
-    }
-    .detail-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .select {
-      height: 28px;
-      padding: 0 10px;
-      border-radius: 6px;
-      border: 1px solid #3f3f46;
-      background: #27272a;
-      color: #d4d4d8;
-      font-size: 12px;
+    
+    .label-chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-    }
-    .picker {
-      position: relative;
-      display: inline-block;
-    }
-    .picker-dropdown {
-      position: absolute;
-      top: 32px;
-      left: 0;
-      width: 180px;
-      background: #27272a;
-      border: 1px solid #3f3f46;
-      border-radius: 6px;
-      padding: 6px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      z-index: 10;
-    }
-    .picker-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      cursor: default;
-    }
-    .picker-item:hover { background: #3f3f46; }
-    .checkbox {
-      width: 14px;
-      height: 14px;
-      border: 1px solid #71717a;
-      border-radius: 3px;
-    }
-    .checked { background: #7c3aed; border-color: #7c3aed; }
-    .label-grid {
-      display: grid;
-      grid-template-columns: 1fr 80px 40px;
-      gap: 12px;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #27272a;
+      padding: 6px 12px;
+      border-radius: 999px;
       font-size: 13px;
+      font-weight: 500;
+      border: 1px solid transparent;
     }
-    .color-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .input {
-      height: 28px;
-      padding: 0 8px;
-      border-radius: 6px;
-      border: 1px solid #3f3f46;
-      background: #18181b;
-      color: #e4e4e7;
-      font-size: 12px;
+    
+    .label-chip.bug {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
     }
-    .icon-btn {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      border: none;
-      background: transparent;
-      color: #a1a1aa;
+    
+    .label-chip.feature {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    
+    .label-chip.urgent {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    
+    .label-chip.frontend {
+      background: rgba(139, 92, 246, 0.15);
+      color: #8b5cf6;
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+    
+    .label-chip.remove-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      cursor: default;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      opacity: 0.7;
+      transition: all 0.2s;
     }
-    .icon-btn:hover { background: #27272a; color: #e4e4e7; }
-    .status-icon { color: #6366f1; }
+    
+    .label-chip.remove-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      opacity: 1;
+    }
+    
+    /* Label Picker Dropdown */
+    .label-picker {
+      margin-top: 12px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 12px;
+      max-width: 320px;
+    }
+    
+    .label-picker-search {
+      width: 100%;
+      padding: 8px 12px;
+      background: #1a1a1a;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .label-picker-search::placeholder {
+      color: #666;
+    }
+    
+    .label-picker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .label-picker-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .label-picker-item:hover {
+      background: #3a3a3a;
+    }
+    
+    .label-picker-item.selected {
+      background: rgba(59, 130, 246, 0.15);
+    }
+    
+    .label-picker-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    
+    .label-picker-name {
+      flex: 1;
+      font-size: 13px;
+      color: #e0e0e0;
+    }
+    
+    .label-picker-check {
+      color: #10b981;
+      font-size: 16px;
+    }
+    
+    /* Issue List Row */
+    .issue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .issue-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .issue-row:hover {
+      background: #303030;
+      border-color: #4a4a4a;
+    }
+    
+    .issue-row-id {
+      font-size: 13px;
+      color: #888;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      min-width: 60px;
+    }
+    
+    .issue-row-title {
+      flex: 1;
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+    
+    .issue-row-labels {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    
+    .issue-row-label {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    .issue-row-label.bug {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+    
+    .issue-row-label.feature {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+    }
+    
+    /* Label Management Screen */
+    .label-management {
+      background: #242424;
+      border-radius: 12px;
+      border: 1px solid #3a3a3a;
+      padding: 24px;
+    }
+    
+    .label-mgmt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    
+    .label-mgmt-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    .create-label-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .create-label-btn:hover {
+      background: #2563eb;
+    }
+    
+    .label-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    
+    .label-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+    }
+    
+    .label-card-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .label-card-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+    }
+    
+    .label-card-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+    
+    .label-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .label-card-btn {
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid #3a3a3a;
+      border-radius: 5px;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .label-card-btn:hover {
+      background: #3a3a3a;
+      color: #e0e0e0;
+    }
+    
+    .label-card-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+    
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .filter-label {
+      font-size: 13px;
+      color: #888;
+      font-weight: 500;
+    }
+    
+    .filter-chips {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+    }
+    
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #3a3a3a;
+      color: #e0e0e0;
+      border: 1px solid #4a4a4a;
+    }
+    
+    .filter-chip-remove {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+    }
+    
+    .clear-filters-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .clear-filters-btn:hover {
+      background: #3a3a3a;
+      color: #e0e0e0;
+    }
   </style>
 </head>
 <body>
-  <div class="scenario">
-    <div class="scenario-title">1. Label Management Screen</div>
-    <div class="app-frame">
-      <div class="header">
-        <div class="header-left">
-          <span>Teams</span>
-          <span>/</span>
-          <span>Engineering</span>
-          <span>/</span>
-          <span style="color:#e4e4e7;">Labels</span>
-        </div>
-        <button class="btn btn-primary">New label</button>
-      </div>
-      <div class="content">
-        <div class="label-grid" style="color:#a1a1aa; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">
-          <div>Name</div>
-          <div>Color</div>
-          <div></div>
-        </div>
-        <div class="label-grid">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="label-chip" style="background:#dc26261a; color:#f87171; border:1px solid #f8717133;">bug</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="color-dot" style="background:#f87171;"></span>
-            <span style="color:#a1a1aa; font-size:12px;">#f87171</span>
-          </div>
-          <div style="display:flex; gap:4px;">
-            <button class="icon-btn">✎</button>
-            <button class="icon-btn">🗑</button>
+  <div class="mockup-container">
+    <div class="mockup-title">Issue #3 – Label Feature UI Mockups</div>
+    
+    <!-- Scenario 1: Issue Detail with Labels -->
+    <div class="scenario">
+      <div class="scenario-title">1. Issue Detail View – Labels Section</div>
+      <div class="issue-detail">
+        <div class="issue-header">
+          <div class="issue-title-text">Add user authentication with OAuth2</div>
+          <div class="issue-meta">
+            <span class="issue-id">#42</span>
+            <span class="status-badge open">Open</span>
+            <span class="priority-badge">High</span>
           </div>
         </div>
-        <div class="label-grid">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="label-chip" style="background:#2563eb1a; color:#60a5fa; border:1px solid #60a5fa33;">feature</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="color-dot" style="background:#60a5fa;"></span>
-            <span style="color:#a1a1aa; font-size:12px;">#60a5fa</span>
-          </div>
-          <div style="display:flex; gap:4px;">
-            <button class="icon-btn">✎</button>
-            <button class="icon-btn">🗑</button>
-          </div>
-        </div>
-        <div class="label-grid">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="label-chip" style="background:#f59e0b1a; color:#fbbf24; border:1px solid #fbbf2433;">urgent</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="color-dot" style="background:#fbbf24;"></span>
-            <span style="color:#a1a1aa; font-size:12px;">#fbbf24</span>
-          </div>
-          <div style="display:flex; gap:4px;">
-            <button class="icon-btn">✎</button>
-            <button class="icon-btn">🗑</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="scenario">
-    <div class="scenario-title">2. Issue Create — Label Picker</div>
-    <div class="app-frame" style="max-width:600px;">
-      <div class="header">
-        <div class="header-left">Create issue</div>
-      </div>
-      <div class="content" style="padding:20px;">
-        <input class="input" style="width:100%; margin-bottom:12px; height:36px; font-size:14px;" placeholder="Issue title" value="Login button broken on mobile">
-        <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px;">
-          <div class="select">Engineering ▾</div>
-          <div class="select">Mobile ▾</div>
-          <div class="select">Unassigned ▾</div>
-          <div class="select">Backlog ▾</div>
-          <div class="picker">
-            <div class="select">Labels ▾</div>
-            <div class="picker-dropdown">
-              <div class="picker-item">
-                <div class="checkbox checked"></div>
-                <span class="color-dot" style="background:#f87171;"></span>
-                bug
+        <div class="issue-body">
+          <div class="label-section">
+            <div class="label-section-header">
+              <span class="label-section-title">Labels</span>
+              <button class="add-label-btn">Add Label</button>
+            </div>
+            <div class="label-chips">
+              <div class="label-chip feature">
+                <span>Feature</span>
+                <button class="label-chip remove-btn">×</button>
               </div>
-              <div class="picker-item">
-                <div class="checkbox"></div>
-                <span class="color-dot" style="background:#60a5fa;"></span>
-                feature
+              <div class="label-chip urgent">
+                <span>Urgent</span>
+                <button class="label-chip remove-btn">×</button>
               </div>
-              <div class="picker-item">
-                <div class="checkbox checked"></div>
-                <span class="color-dot" style="background:#fbbf24;"></span>
-                urgent
+              <div class="label-chip frontend">
+                <span>Frontend</span>
+                <button class="label-chip remove-btn">×</button>
+              </div>
+            </div>
+            <!-- Label Picker (shown when "Add Label" is clicked) -->
+            <div class="label-picker">
+              <input type="text" class="label-picker-search" placeholder="Search labels..." />
+              <div class="label-picker-list">
+                <div class="label-picker-item selected">
+                  <div class="label-picker-color" style="background: #3b82f6;"></div>
+                  <span class="label-picker-name">Feature</span>
+                  <span class="label-picker-check">✓</span>
+                </div>
+                <div class="label-picker-item selected">
+                  <div class="label-picker-color" style="background: #f59e0b;"></div>
+                  <span class="label-picker-name">Urgent</span>
+                  <span class="label-picker-check">✓</span>
+                </div>
+                <div class="label-picker-item selected">
+                  <div class="label-picker-color" style="background: #8b5cf6;"></div>
+                  <span class="label-picker-name">Frontend</span>
+                  <span class="label-picker-check">✓</span>
+                </div>
+                <div class="label-picker-item">
+                  <div class="label-picker-color" style="background: #ef4444;"></div>
+                  <span class="label-picker-name">Bug</span>
+                </div>
+                <div class="label-picker-item">
+                  <div class="label-picker-color" style="background: #10b981;"></div>
+                  <span class="label-picker-name">Backend</span>
+                </div>
+                <div class="label-picker-item">
+                  <div class="label-picker-color" style="background: #ec4899;"></div>
+                  <span class="label-picker-name">Design</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div style="min-height:80px; color:#a1a1aa; font-size:13px; margin-bottom:16px;">
-          Add description…
+      </div>
+    </div>
+    
+    <!-- Scenario 2: Issue List with Label Chips -->
+    <div class="scenario">
+      <div class="scenario-title">2. Issue List – With Label Filter</div>
+      
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <span class="filter-label">Filter by label:</span>
+        <div class="filter-chips">
+          <div class="filter-chip">
+            <span>Feature</span>
+            <button class="filter-chip-remove">×</button>
+          </div>
+          <div class="filter-chip">
+            <span>Frontend</span>
+            <button class="filter-chip-remove">×</button>
+          </div>
         </div>
-        <div style="display:flex; justify-content:flex-end; gap:8px;">
-          <button class="btn btn-outline">Cancel</button>
-          <button class="btn btn-primary">Save</button>
+        <button class="clear-filters-btn">Clear all</button>
+      </div>
+      
+      <!-- Issue List -->
+      <div class="issue-list">
+        <div class="issue-row">
+          <span class="issue-row-id">#42</span>
+          <span class="issue-row-title">Add user authentication with OAuth2</span>
+          <div class="issue-row-labels">
+            <span class="issue-row-label feature">Feature</span>
+            <span class="issue-row-label frontend">Frontend</span>
+          </div>
+        </div>
+        <div class="issue-row">
+          <span class="issue-row-id">#38</span>
+          <span class="issue-row-title">Implement dark mode toggle in settings</span>
+          <div class="issue-row-labels">
+            <span class="issue-row-label feature">Feature</span>
+            <span class="issue-row-label frontend">Frontend</span>
+          </div>
+        </div>
+        <div class="issue-row">
+          <span class="issue-row-id">#35</span>
+          <span class="issue-row-title">Fix navigation menu on mobile devices</span>
+          <div class="issue-row-labels">
+            <span class="issue-row-label bug">Bug</span>
+            <span class="issue-row-label frontend">Frontend</span>
+          </div>
+        </div>
+        <div class="issue-row">
+          <span class="issue-row-id">#29</span>
+          <span class="issue-row-title">Add real-time sync indicator</span>
+          <div class="issue-row-labels">
+            <span class="issue-row-label feature">Feature</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="scenario">
-    <div class="scenario-title">3. Issue Detail — Label Chips</div>
-    <div class="app-frame" style="max-width:600px;">
-      <div class="content">
-        <div class="detail-meta">
-          <div class="select">Unassigned ▾</div>
-          <div class="select">Backlog ▾</div>
-          <div class="select">Low ▾</div>
-          <div class="select">Mobile ▾</div>
-          <div class="picker">
-            <div class="select">+ Label ▾</div>
-            <div class="picker-dropdown">
-              <div class="picker-item"><div class="checkbox checked"></div><span class="color-dot" style="background:#f87171;"></span>bug</div>
-              <div class="picker-item"><div class="checkbox"></div><span class="color-dot" style="background:#60a5fa;"></span>feature</div>
-              <div class="picker-item"><div class="checkbox checked"></div><span class="color-dot" style="background:#fbbf24;"></span>urgent</div>
+    
+    <!-- Scenario 3: Label Management Screen -->
+    <div class="scenario">
+      <div class="scenario-title">3. Label Management Screen (Team Settings)</div>
+      <div class="label-management">
+        <div class="label-mgmt-header">
+          <h2 class="label-mgmt-title">Manage Labels</h2>
+          <button class="create-label-btn">+ Create Label</button>
+        </div>
+        <div class="label-grid">
+          <div class="label-card">
+            <div class="label-card-left">
+              <div class="label-card-color" style="background: #ef4444;"></div>
+              <span class="label-card-name">Bug</span>
+            </div>
+            <div class="label-card-actions">
+              <button class="label-card-btn">Edit</button>
+              <button class="label-card-btn delete">Delete</button>
+            </div>
+          </div>
+          <div class="label-card">
+            <div class="label-card-left">
+              <div class="label-card-color" style="background: #3b82f6;"></div>
+              <span class="label-card-name">Feature</span>
+            </div>
+            <div class="label-card-actions">
+              <button class="label-card-btn">Edit</button>
+              <button class="label-card-btn delete">Delete</button>
+            </div>
+          </div>
+          <div class="label-card">
+            <div class="label-card-left">
+              <div class="label-card-color" style="background: #f59e0b;"></div>
+              <span class="label-card-name">Urgent</span>
+            </div>
+            <div class="label-card-actions">
+              <button class="label-card-btn">Edit</button>
+              <button class="label-card-btn delete">Delete</button>
+            </div>
+          </div>
+          <div class="label-card">
+            <div class="label-card-left">
+              <div class="label-card-color" style="background: #10b981;"></div>
+              <span class="label-card-name">Backend</span>
+            </div>
+            <div class="label-card-actions">
+              <button class="label-card-btn">Edit</button>
+              <button class="label-card-btn delete">Delete</button>
+            </div>
+          </div>
+          <div class="label-card">
+            <div class="label-card-left">
+              <div class="label-card-color" style="background: #8b5cf6;"></div>
+              <span class="label-card-name">Frontend</span>
+            </div>
+            <div class="label-card-actions">
+              <button class="label-card-btn">Edit</button>
+              <button class="label-card-btn delete">Delete</button>
+            </div>
+          </div>
+          <div class="label-card">
+            <div class="label-card-left">
+              <div class="label-card-color" style="background: #ec4899;"></div>
+              <span class="label-card-name">Design</span>
+            </div>
+            <div class="label-card-actions">
+              <button class="label-card-btn">Edit</button>
+              <button class="label-card-btn delete">Delete</button>
             </div>
           </div>
         </div>
-        <h2 style="margin:0 0 12px; font-size:22px; font-weight:600; color:#fafafa;">Login button broken on mobile</h2>
-        <div class="chip-row" style="margin-bottom:16px;">
-          <span class="label-chip" style="background:#dc26261a; color:#f87171; border:1px solid #f8717133;">bug ✕</span>
-          <span class="label-chip" style="background:#f59e0b1a; color:#fbbf24; border:1px solid #fbbf2433;">urgent ✕</span>
-        </div>
-        <p style="color:#d4d4d8; font-size:14px; line-height:1.5;">
-          The login button is unresponsive on iOS Safari. Tapping it does nothing and no network request is fired.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div class="scenario">
-    <div class="scenario-title">4. Issue List — Chips + Filter</div>
-    <div class="app-frame">
-      <div class="toolbar">
-        <div class="filter-bar">
-          <span style="color:#a1a1aa; font-size:12px;">Filter:</span>
-          <div class="filter-chip">bug <span style="color:#a1a1aa;">✕</span></div>
-          <div class="filter-chip">urgent <span style="color:#a1a1aa;">✕</span></div>
-          <div class="select" style="height:24px; padding:0 8px;">+ Add filter ▾</div>
-        </div>
-      </div>
-      <div class="list-row">
-        <div style="width:20px; height:20px; border:1px solid #3f3f46; border-radius:4px;"></div>
-        <span class="status-icon">◉</span>
-        <div class="issue-title">Login button broken on mobile</div>
-        <div class="chip-row">
-          <span class="label-chip" style="background:#dc26261a; color:#f87171; border:1px solid #f8717133;">bug</span>
-          <span class="label-chip" style="background:#f59e0b1a; color:#fbbf24; border:1px solid #fbbf2433;">urgent</span>
-        </div>
-        <span class="label-chip" style="background:transparent; border:1px solid #3f3f46; color:#a1a1aa;">📁 Mobile</span>
-        <span>⭘</span>
-      </div>
-      <div class="list-row">
-        <div style="width:20px; height:20px; border:1px solid #3f3f46; border-radius:4px;"></div>
-        <span class="status-icon">◉</span>
-        <div class="issue-title">Dark mode toggle missing in settings</div>
-        <div class="chip-row">
-          <span class="label-chip" style="background:#2563eb1a; color:#60a5fa; border:1px solid #60a5fa33;">feature</span>
-        </div>
-        <span class="label-chip" style="background:transparent; border:1px solid #3f3f46; color:#a1a1aa;">📁 Frontend</span>
-        <span>⭘</span>
       </div>
     </div>
   </div>
