@@ -1,39 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="../../extra.css">
-</head>
-<body>
+<link rel="stylesheet" href="../../extra.css">
 <div class="diagram">
-  <div class="diagram-title">System Architecture: Comments & Activity Feed</div>
+  <div class="diagram-title">System Architecture — Issue Comments &amp; Activity Feed</div>
   <div class="diagram-row">
     <div class="diagram-box renderer">
-      <div class="diagram-box-title">RENDERER (React)</div>
+      <div class="diagram-box-title">REACT FRONTEND</div>
       <div class="diagram-steps">
-        <div class="diagram-step"><span class="diagram-step-text">CommentList</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">CommentInput</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">CommentItem</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">ActivityFeed</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">Issue Detail Tabs</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Issue detail page <code class="diagram-step-code">issue.tsx</code> (tab switcher)</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">CommentList / CommentInput / CommentItem</code></span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">ActivityFeed</code> (timeline + date groups)</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">useQuery</code> reads · <code class="diagram-step-code">useMutate</code> writes</span></div>
       </div>
     </div>
     <div class="diagram-ipc">
       <div class="diagram-ipc-inner">
         <div class="diagram-ipc-line"></div>
-        <div class="diagram-ipc-label">SQLSync<br>Sync + Mutate</div>
+        <div class="diagram-ipc-label">SQLSync (sync + WASM reducer)</div>
         <div class="diagram-ipc-arrow"></div>
       </div>
     </div>
     <div class="diagram-box main">
-      <div class="diagram-box-title">MAIN (WASM Reducer)</div>
+      <div class="diagram-box-title">RUST WASM REDUCER</div>
       <div class="diagram-steps">
-        <div class="diagram-step"><span class="diagram-step-text">comments table</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">activities table</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">AddComment / EditComment / DeleteComment</span></div>
-        <div class="diagram-step"><span class="diagram-step-text">LogActivity (auto on UpdateIssue, AssignIssue, MoveIssues)</span></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">query!</code> prior state (status / assignee / project)</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">execute!</code> apply change</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">execute!</code> auto-insert activity <code class="diagram-step-code">{from,to}</code></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="diagram-row">
+    <div class="diagram-box main">
+      <div class="diagram-box-title">SQLITE TABLES (per document)</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">issues</code> (existing)</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step success"><span class="diagram-step-text"><code class="diagram-step-code">comments</code> — new</span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step success"><span class="diagram-step-text"><code class="diagram-step-code">activities</code> — new (action + payload)</span></div>
       </div>
     </div>
   </div>
 </div>
-</body>
-</html>

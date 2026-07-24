@@ -1,47 +1,63 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="../../extra.css">
-</head>
-<body>
+<link rel="stylesheet" href="../../extra.css">
 <div class="diagram">
-  <div class="diagram-title">Data Flow: User Adds a Comment</div>
+  <div class="diagram-title">Data Flow — "Alice changes status Backlog → In Progress"</div>
   <div class="diagram-flow-horizontal">
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">User Input</div>
-      <div class="diagram-flow-sublabel">types in textarea</div>
+      <div class="diagram-flow-label">User</div>
+      <div class="diagram-flow-sublabel">selects "In Progress"</div>
     </div>
     <div class="diagram-flow-arrow">→</div>
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">CommentInput</div>
-      <div class="diagram-flow-sublabel">onSubmit</div>
+      <div class="diagram-flow-label">issue.tsx</div>
+      <div class="diagram-flow-sublabel">mutate(UpdateIssue)</div>
     </div>
     <div class="diagram-flow-arrow">→</div>
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">useMutate</div>
-      <div class="diagram-flow-sublabel">AddComment mutation</div>
+      <div class="diagram-flow-label">Reducer</div>
+      <div class="diagram-flow-sublabel">query! prior status</div>
     </div>
     <div class="diagram-flow-arrow">→</div>
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">SQLSync Worker</div>
-      <div class="diagram-flow-sublabel">serialize → apply</div>
+      <div class="diagram-flow-label">Reducer</div>
+      <div class="diagram-flow-sublabel">execute! UPDATE issues</div>
     </div>
     <div class="diagram-flow-arrow">→</div>
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">WASM Reducer</div>
-      <div class="diagram-flow-sublabel">INSERT INTO comments</div>
+      <div class="diagram-flow-label">Reducer</div>
+      <div class="diagram-flow-sublabel">execute! INSERT activity</div>
+    </div>
+  </div>
+  <div class="diagram-row">
+    <div class="diagram-box main">
+      <div class="diagram-box-title">ACTIVITY ROW WRITTEN</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-num">1</span><span class="diagram-step-text"><code class="diagram-step-code">action = "status_changed"</code></span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-num">2</span><span class="diagram-step-text"><code class="diagram-step-code">payload = {"from":"backlog","to":"inprogress"}</code></span></div>
+        <div class="diagram-connector"></div>
+        <div class="diagram-step"><span class="diagram-step-num">3</span><span class="diagram-step-text"><code class="diagram-step-code">actor_id = auth.id</code> · <code class="diagram-step-code">created_at = now</code></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">ActivityFeed</div>
+      <div class="diagram-flow-sublabel">useQuery activities</div>
     </div>
     <div class="diagram-flow-arrow">→</div>
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">Sync</div>
-      <div class="diagram-flow-sublabel">broadcast to peers</div>
+      <div class="diagram-flow-label">Resolve names</div>
+      <div class="diagram-flow-sublabel">users / projects query</div>
     </div>
     <div class="diagram-flow-arrow">→</div>
     <div class="diagram-flow-node">
-      <div class="diagram-flow-label">CommentList</div>
-      <div class="diagram-flow-sublabel">re-renders via useQuery</div>
+      <div class="diagram-flow-label">Group by date</div>
+      <div class="diagram-flow-sublabel">Today / Yesterday …</div>
+    </div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node">
+      <div class="diagram-flow-label">Render</div>
+      <div class="diagram-flow-sublabel">"Alice changed status from Backlog → In Progress"</div>
     </div>
   </div>
 </div>
-</body>
-</html>
