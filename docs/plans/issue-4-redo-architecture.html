@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../extra.css">
+<title>Issue #4 — System Architecture</title>
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">System Architecture — Comments &amp; Activity Feed</div>
+
+  <div class="diagram-row">
+    <div class="diagram-box renderer">
+      <div class="diagram-box-title">REACT FRONTEND (renderer)</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">Issue Detail Page <code class="diagram-step-code">id.tsx</code> — tab state</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Comments: <code class="diagram-step-code">CommentInput</code> · <code class="diagram-step-code">CommentList</code> · <code class="diagram-step-code">CommentItem</code></span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Activity: <code class="diagram-step-code">ActivityFeed</code></span></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">useQuery</code> reads rows · <code class="diagram-step-code">useMutate</code> dispatches</span></div>
+      </div>
+    </div>
+
+    <div class="diagram-ipc">
+      <div class="diagram-ipc-inner">
+        <div class="diagram-ipc-line"></div>
+        <div class="diagram-ipc-label">SQLSync worker (mutations + queries)</div>
+        <div class="diagram-ipc-arrow"></div>
+      </div>
+    </div>
+
+    <div class="diagram-box main">
+      <div class="diagram-box-title">RUST WASM REDUCER</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text">Schema: <code class="diagram-step-code">comments</code> + <code class="diagram-step-code">activities</code> tables</span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Mutations: <code class="diagram-step-code">AddComment</code> · <code class="diagram-step-code">EditComment</code> · <code class="diagram-step-code">DeleteComment</code></span></div>
+        <div class="diagram-step"><span class="diagram-step-text">Auto-log: <code class="diagram-step-code">UpdateIssue</code> · <code class="diagram-step-code">AssignIssue</code> · <code class="diagram-step-code">MoveIssues</code> + <code class="diagram-step-code">actor_id</code></span></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">execute!</code> → SQLite (write-only, no SELECT)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-row" style="margin-top:24px;justify-content:center">
+    <div class="diagram-box main" style="min-width:520px">
+      <div class="diagram-box-title">SHARED TYPES — app/doctype.ts</div>
+      <div class="diagram-steps">
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">Mutation</code> union (tagged) — source of truth for both sides</span></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">Comment</code> { id, issue_id, author_id, body, created_at, updated_at }</span></div>
+        <div class="diagram-step"><span class="diagram-step-text"><code class="diagram-step-code">Activity</code> { id, issue_id, actor_id, action, payload, created_at }</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

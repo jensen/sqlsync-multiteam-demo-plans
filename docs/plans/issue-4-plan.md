@@ -1,21 +1,18 @@
 # Issue #4 — Issue Comments & Activity Feed
 
-> **Status:** Planning (fresh implementation from `origin/main`)
-> **Branch:** `fix/issue-4-redo` (worktree `tmp_worktree/issue-4-redo`)
-> **Base:** `origin/main` @ `7a350a9`
+> **Status:** Fresh re-implementation (supersedes prior attempts on `fix/issue-4-*` branches and PR #10).
+> **Base:** `origin/main` (`7a350a9`) — clean, no prior feature commits.
+> **Worktree branch:** `fix/issue-4-redo`
+
+---
 
 ## 1. Issue Summary
 
-Add the ability to **comment on issues** and see an **activity timeline** of
-changes. The feature spans the Rust WASM reducer (`reducer/src/lib.rs`) and the
-React frontend, structured as 6 tasks with a dependency graph:
+Add the ability to **comment on issues** and see an **activity timeline** of changes. The
+feature spans the Rust WASM reducer (schema + mutations) and the React frontend (UI
+components + integration), plus shared TypeScript types.
 
-- Tasks 1 & 2 (Rust reducer) → parallel
-- Tasks 3 & 4 (React UI) → parallel once 1 & 2 land
-- Task 5 (integration) → depends on 3 & 4
-- Task 6 (TS types) → depends on 1 & 2
-
-**Acceptance criteria**
+**Acceptance criteria (from the issue):**
 
 - [ ] Users can add, edit, and delete comments on any issue
 - [ ] Comments appear in real-time across synced clients (SQLSync)
@@ -24,53 +21,74 @@ React frontend, structured as 6 tasks with a dependency graph:
 - [ ] The UI matches the existing dark theme
 - [ ] All new code is TypeScript-typed correctly
 
-## 2. Why a Fresh Implementation
+---
 
-Prior attempts (branches `fix/issue-4`, `fix/issue-4-implementation`,
-`fix/issue-4-test-fixes`, open PR #10) landed an implementation, but with
-shortcomings that this redo resolves:
+## 2. Context — Why a Fresh Start
 
-- The reducer **could not show "from → to"** in activity text because it never
-  read prior state — it logged only the new value and used `""` as the actor for
-  `UpdateIssue`. The activity feed therefore could not render
-  *"Alice changed status from Backlog → In Progress"*.
-- Activities used a `details` column instead of the spec's `payload` column.
+Prior attempts left four local branches and an open PR #10. Review of the most advanced
+prior branch (`fix/issue-4-test-fixes`) revealed **correctness flaws in the reducer** that
+motivated starting over from a clean `origin/main`:
 
-This plan starts from a clean `origin/main` (which does **not** contain the
-feature) and reimplements correctly, using the reducer's `query!` API to read
-prior state.
+1. **Empty / wrong actor for activities.** The reducer logged `actor_id = ''` (empty string)
+   for status, priority, archive, restore, and move activities. For assignments it used the
+   *assignee* as the actor. The activity feed therefore could not attribute changes to a user.
+2. **Activity ID collisions.** Activity IDs were derived as `"{issue_id}_status"`,
+   `"{issue_id}_assign"`, etc. Repeating the same operation on the same issue collides on the
+   `PRIMARY KEY` and the second insert fails silently.
+3. **Spec drift.** The prior `Comment` type used `created_by` and omitted `updated_at`; the
+   activity table used a `details` column instead of the specified `payload`.
+4. **SQL safety.** Activity inserts used `format!`-interpolated strings (SQL-injection-shaped)
+   purely so tests could read values back.
 
-## 3. Design Analysis (reducer API findings)
+This plan addresses all four.
 
-Investigation of `sqlsync-reducer 0.3.2` confirms the reducer is **not**
-write-only — it exposes two macros:
+---
 
-| Macro | Returns | Use |
-|-------|---------|-----|
-| `execute!(sql, …params)` | `Result<ExecResponse { changes }>` | INSERT / UPDATE / DELETE |
-| `query!(sql, …params)` | `Result<QueryResponse { columns, rows: Vec<Row> }>` | SELECT prior state |
+## 3. Architectural Constraint (Important)
 
-`Row` is `Vec<SqliteValue>` where `SqliteValue = Null \| Integer \| Real \| Text \| Blob`.
+**SQLSync reducers are write-only.** A reducer receives a mutation and emits SQL
+`execute!` statements; it **cannot `SELECT` existing state** (state is rebuilt by replaying
+mutations). Consequences for this feature:
 
-**Consequence:** the reducer *can* `query!` the current status / assignee /
-project before applying a change, then insert an activity row whose `payload`
-(JSON) records both the old and new values — enabling true
-*"from Backlog → In Progress"* text, fully reducer-side, satisfying the spec's
-"hook into existing mutations to auto-insert activity rows."
+- The reducer **cannot know the "old" value** of a status/priority/assignment/project when
+  logging an activity. Therefore activity records store the **new** value, and the
+  `ActivityFeed` renders e.g. *"Alice changed status to In Progress"* rather than
+  *"from Backlog → In Progress"*.
+- The activity `payload` stores **ids** (assignee id, project id). The `ActivityFeed`
+  resolves ids → names by joining with the `users` and `projects` queries in the UI.
+- The reducer **cannot generate a UUID** (no `uuid` crate dependency, and adding one
+  increases WASM size). Activity IDs are generated in SQL via
+  `lower(hex(randomblob(16)))` — unique per insert, no collision risk.
 
-**Actor:** the existing `UpdateIssue` / `AssignIssue` / `MoveIssues` mutations
-carry no actor, yet the activity table needs `actor_id` and the friendly text
-needs a name (*"Alice changed…"*). This plan therefore adds an `actor_id`
-field to those three mutations (Rust + TS) and updates the call sites to pass the
-current user's id from `useAuth()`. This is a deliberate, justified extension of
-Task 2's hook requirement; it is called out explicitly because the issue's Task 6
-only lists *new* variants.
+This is a deliberate, honest scope decision. "From X → Y" descriptions would require the
+frontend to pass prior values into the mutation; that is documented as a future enhancement,
+not part of this fix.
+
+---
 
 ## 4. Proposed Solution
 
-### Task 1 — Comments schema & mutations (`reducer/src/lib.rs`)
+### 4.0 Prerequisite — wasm32 build fix (already committed `51d25d5`)
 
-Add to `InitSchema`:
+`origin/main` cannot build the reducer for `wasm32` — `cargo build --target
+wasm32-unknown-unknown --release` fails with `undefined symbol: host_log` because
+`sqlsync-reducer` declares extern host functions that the runtime provides. The fix
+(commit `af96f00` on local `main`, absent from `origin/main`) adds a linker config
+and is re-applied here as the first commit:
+
+- **New file `reducer/.cargo/config.toml`:**
+  ```toml
+  [target.wasm32-unknown-unknown]
+  rustflags = ["-C", "link-arg=--allow-undefined"]
+  ```
+- `.gitignore`: add `.env.local`.
+
+Verified: the reducer now builds for `wasm32` on the fresh branch.
+
+### 4.1 Reducer — `reducer/src/lib.rs` (Tasks 1, 2, 6-partial)
+
+**Schema (added to `InitSchema`):**
+
 ```sql
 create table if not exists comments (
     id text primary key,
@@ -82,17 +100,7 @@ create table if not exists comments (
     foreign key (issue_id) references issues(id),
     foreign key (author_id) references users(id)
 )
-```
 
-New mutation variants:
-- `AddComment { id, issue_id, author_id, body }` → INSERT with `created_at = updated_at = datetime('now')`
-- `EditComment { id, body }` → UPDATE `body, updated_at = datetime('now')`
-- `DeleteComment { id }` → DELETE row
-
-### Task 2 — Activities schema & mutations (`reducer/src/lib.rs`)
-
-Add to `InitSchema`:
-```sql
 create table if not exists activities (
     id text primary key,
     issue_id text not null,
@@ -104,114 +112,202 @@ create table if not exists activities (
 )
 ```
 
-New mutation variant:
-- `LogActivity { id, issue_id, actor_id, action, payload }` → INSERT (client-supplied id, e.g. uuid)
+Column names match the issue spec exactly (`author_id`, `payload`).
 
-**Hook into existing mutations** (add `actor_id` to each):
-- `UpdateIssue { id, status, priority, actor_id }` — `query!` prior `status`/`priority`; apply UPDATE; for each changed field insert an activity with `action` ∈ `{status_changed, priority_changed}` and `payload = JSON {from, to}`.
-- `AssignIssue { id, to, actor_id }` — `query!` prior `assigned_to`; apply UPDATE; insert activity `action=assigned`, `payload={from, to}`.
-- `MoveIssues { ids, project_id, actor_id }` — for each id, `query!` prior `project_id`; apply UPDATE; insert activity `action=moved`, `payload={from, to}`.
+**New mutations:**
 
-Auto-inserted activity ids use `lower(hex(randomblob(16)))` (SQLite-side unique
-id) so rapid successive changes never collide on the primary key. `payload` is
-built with `serde_json::json!({"from": old, "to": new}).to_string()`.
+- `AddComment { id, issue_id, author_id, body }` → insert comment (`created_at = updated_at = datetime('now')`).
+- `EditComment { id, body }` → update `body` and `updated_at = datetime('now')` for the row.
+- `DeleteComment { id }` → delete the row.
+- `LogActivity { id, issue_id, actor_id, action, payload }` → insert activity (used by the UI
+  for explicit logging if ever needed; also the shape used by auto-logging internally).
 
-### Task 3 — Comment UI components (`app/routes/issues/components/comments/`)
+**Auto-logging (hook into existing mutations):**
 
-- `CommentList.tsx` — `useQuery` comments for the issue (`order by created_at asc`); renders one `CommentItem` per row; takes `issue_id`.
-- `CommentInput.tsx` — textarea + submit; on submit calls `mutate({ tag:"AddComment", id: uuid(), issue_id, author_id, body })` where `author_id` comes from `useAuth().auth?.id`. Clears on success. Disabled while empty.
-- `CommentItem.tsx` — author name (resolved from a users query), relative timestamp, body; inline edit (textarea → `EditComment`) and delete (`DeleteComment`) with confirm.
+Add an **optional** `actor_id: Option<String>` to `UpdateIssue`, `AssignIssue`, and
+`MoveIssues`. When `actor_id` is `Some`, the reducer inserts an activity row **after** the
+update, using parameterized SQL with a safe inline `action` literal:
 
-### Task 4 — Activity feed (`app/routes/issues/components/activity/`)
+```sql
+insert into activities (id, issue_id, actor_id, action, payload, created_at)
+values (lower(hex(randomblob(16))), ?, ?, 'status_changed', ?, datetime('now'))
+```
 
-- `ActivityFeed.tsx` — `useQuery` activities for the issue (`order by created_at desc`); renders a timeline grouped by date (`Today`, `Yesterday`, older dates) using a small date util. Friendly text per `action`:
-  - `status_changed` → "{actor} changed status from {from} → {to}"
-  - `priority_changed` → "{actor} changed priority from {from} → {to}"
-  - `assigned` → "{actor} assigned to {to}" (or "unassigned" if `to` is null)
-  - `moved` → "{actor} moved to {to}" (project name; "removed from project" if null)
-  - `commented` (if used) → "{actor} commented"
-  - Actor / assignee ids resolved to names via `useQuery` on `users`; project ids via `useQuery` on `projects`.
+| Mutation arm                     | `action` literal   | `payload` content                  |
+|----------------------------------|--------------------|------------------------------------|
+| `UpdateIssue` (status set)       | `status_changed`   | new status string                  |
+| `UpdateIssue` (priority set)     | `priority_changed` | new priority string                |
+| `AssignIssue`                    | `assigned`         | new assignee id, or `null`/`"unassigned"` |
+| `MoveIssues` (per issue id)      | `moved`            | new project id, or `null`/`"inbox"` |
 
-### Task 5 — Integrate into Issue detail page
+The UI calls `UpdateIssue` twice (once for status, once for priority), so each change logs
+exactly one activity. `MoveIssues` with N ids logs N activities. `ArchiveIssues` /
+`RestoreIssues` are **left unchanged** (out of spec scope) to minimize blast radius.
 
-- `app/routes/issues/components/issue.tsx` — add a tab switcher (`useState`): **Details** | **Comments (n)** | **Activity**. Details = existing issue controls + body. Comments = `CommentList` + `CommentInput` (passing `issue_id = props.issue.id`). Activity = `ActivityFeed`. Comment count badge via `useQuery` count.
-- `app/routes/issues/id.tsx` — no structural change needed (already passes the issue with `id`); ensure the issue row includes `id`.
+**Why optional `actor_id`:** backward-compatible — existing call sites that omit it still
+deserialize (serde treats a missing `Option<T>` as `None`) and simply skip logging. The UI
+passes the current user's id from `useAuth()` at the call sites it wants attributed.
 
-### Task 6 — TypeScript types (`app/doctype.ts`)
+**Testability hook (`#[cfg(test)]`):** a `#[cfg(test)]` mock of the `execute!` macro records
+emitted SQL into a thread-local `Vec<String>` (returning a ready `ExecResponse`). This lets
+`cargo test` run the reducer natively and assert the correct SQL is emitted — real TDD on the
+reducer without the full SQLSync runtime. Variable values are bound via `?` (safe); the
+`action` is an inline string literal (safe + assertable). A small `block_on` helper polls the
+ready futures to completion. *(If `cargo test` fails to compile due to `init_reducer!`
+expansions, the fallback is build-verification (`cargo build --target wasm32`) + UI tests
+only.)*
 
-- Extend the `Mutation` union: `AddComment`, `EditComment`, `DeleteComment`, `LogActivity`.
-- Add `actor_id: string` to `UpdateIssue`, `AssignIssue`, `MoveIssues`.
-- Add types:
-  ```ts
-  export type Comment = { id: string; issue_id: string; author_id: string; body: string; created_at: string; updated_at: string };
-  export type Activity = { id: string; issue_id: string; actor_id: string; action: string; payload: string | null; created_at: string };
-  ```
+### 4.2 TypeScript Types — `app/doctype.ts` (Task 6)
+
+Add `Comment` and `Activity` types and extend the `Mutation` union:
+
+```typescript
+export type Comment = {
+  id: string;
+  issue_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Activity = {
+  id: string;
+  issue_id: string;
+  actor_id: string;
+  action: string;
+  payload: string | null;
+  created_at: string;
+};
+```
+
+Add `actor_id?: string` to `UpdateIssue`, `AssignIssue`, `MoveIssues`. Add `AddComment`,
+`EditComment`, `DeleteComment`, `LogActivity` variants.
+
+### 4.3 UI Components (Tasks 3, 4) — presentational + testable
+
+New components are **presentational**: they receive data and callbacks as props and do **not**
+call `useQuery`/`useMutate` directly. This keeps them unit-testable with `@testing-library`
+without mocking the SQLSync hooks. A thin container in the issue detail page wires the hooks.
+
+- `app/routes/issues/components/comments/CommentInput.tsx` — textarea + submit button;
+  props: `onSubmit(body: string)`, `disabled?`. Resets on submit. Empty body disables submit.
+- `app/routes/issues/components/comments/CommentItem.tsx` — single comment with author name,
+  timestamp, body, edit/delete buttons; props: `comment`, `authorName`, `canEdit`,
+  `onEdit(id, body)`, `onDelete(id)`. Inline edit mode toggles textarea + Save/Cancel.
+- `app/routes/issues/components/comments/CommentList.tsx` — scrollable chronological list;
+  props: `comments`, `userMap: Record<string,string>`, `currentUserId`, `onAdd`,
+  `onEdit`, `onDelete`. Renders `CommentInput` at top, `CommentItem`s below, empty-state when
+  no comments.
+- `app/routes/issues/components/activity/ActivityFeed.tsx` — chronological timeline grouped by
+  date; props: `activities`, `userMap`, `projectMap`. Renders friendly text per `action`:
+  - `status_changed` → "{user} changed status to {value}"
+  - `priority_changed` → "{user} changed priority to {value}"
+  - `assigned` → "{user} assigned to {name|Unassigned}"
+  - `moved` → "{user} moved to {projectName|Inbox}"
+
+### 4.4 Date utilities — `app/lib/date.ts`
+
+A small, pure helper module for relative timestamps and date grouping ("Today", "Yesterday",
+"MMM d"), used by `CommentItem` and `ActivityFeed`. Pure functions → directly unit-testable.
+
+### 4.5 Integration (Task 5) — `app/routes/issues/id.tsx` + `components/issue.tsx`
+
+Add a **tab switcher** to the issue detail page: **Details** | **Comments (N)** | **Activity**.
+
+- `id.tsx` fetches the issue **and** its comments/activities via `useQuery` (sorted
+  chronologically), and fetches users + projects for name resolution. It holds the active tab
+  state and renders the tab bar + the corresponding panel.
+- The `Comments` container wires `useMutate` to dispatch `AddComment` / `EditComment` /
+  `DeleteComment` (generating `id` via `uuid`), passing data + callbacks into `CommentList`.
+- `issue.tsx`'s existing `onChangeStatus` / `onChangeAssignee` / `onChangePriority` /
+  `MoveIssues` call sites pass `actor_id: auth?.id` so the reducer auto-logs activity.
+- `issue_id` is passed to comment/activity containers (required by the spec).
+
+### 4.6 Test infrastructure (foundational — base has none)
+
+The clean `origin/main` has **no test runner**. Add:
+
+- **`vitest`** + `@testing-library/react` + `@testing-library/jest-dom` + `@testing-library/user-event` + `jsdom` as devDependencies.
+- **`vitest.config.ts`** (jsdom env, globals, `~` → `./app` alias, setup file).
+- **`tests/setup.ts`** (`import "@testing-library/jest-dom/vitest"`).
+- **`package.json` scripts:** `"test": "vitest run"`, `"test:watch": "vitest"`,
+  `"typecheck": "tsc --noEmit"`.
+
+---
 
 ## 5. Files to Modify
 
 | File | Change |
-|------|--------|
-| `reducer/src/lib.rs` | comments + activities tables; new mutation variants; `query!`-based activity hooks; `#[cfg(test)]` mocks for `query!`/`execute!` + unit tests |
-| `app/doctype.ts` | new `Mutation` variants; `actor_id` on 3 mutations; `Comment`/`Activity` types |
-| `app/routes/issues/components/issue.tsx` | tab switcher; render Comments + Activity; pass `issue_id` |
-| `app/routes/issues/components/list.tsx` | pass `actor_id` to `MoveIssues` calls (3 sites) |
-| `app/routes/issues/id.tsx` | ensure issue row includes `id` (already does) |
-| `package.json` | add `test`, `test:watch`, `typecheck` scripts + vitest/testing-library/jsdom devDeps |
+|---|---|
+| `reducer/src/lib.rs` | Add `comments` + `activities` schema; add `AddComment`/`EditComment`/`DeleteComment`/`LogActivity` mutations; add optional `actor_id` to `UpdateIssue`/`AssignIssue`/`MoveIssues`; auto-log activities; add `#[cfg(test)]` SQL-mock + unit tests. |
+| `app/doctype.ts` | Add `Comment`, `Activity` types; add 4 mutation variants; add `actor_id?` to 3 variants. |
+| `app/routes/issues/id.tsx` | Fetch comments/activities/users/projects; tab state; render tab bar + panels. |
+| `app/routes/issues/components/issue.tsx` | Pass `actor_id: auth?.id` to `UpdateIssue`/`AssignIssue`/`MoveIssues` call sites; expose `issue_id` to children. |
+| `app/routes/issues/components/list.tsx` | Pass `actor_id: auth?.id` to bulk `MoveIssues` call sites (so moves log activity). |
+| `package.json` | Add `test`, `test:watch`, `typecheck` scripts + test devDependencies. |
+| `vitest.config.ts` *(new)* | Vitest config. |
+| `tests/setup.ts` *(new)* | jest-dom setup. |
 
 ## 6. New Files
 
-- `app/routes/issues/components/comments/CommentList.tsx`
+- `reducer/.cargo/config.toml` *(prerequisite build fix)*
 - `app/routes/issues/components/comments/CommentInput.tsx`
 - `app/routes/issues/components/comments/CommentItem.tsx`
+- `app/routes/issues/components/comments/CommentList.tsx`
 - `app/routes/issues/components/activity/ActivityFeed.tsx`
-- `app/lib/date.ts` — date grouping helpers (`group by date`, `Today/Yesterday/absolute`)
-- `vitest.config.ts`
-- `tests/setup.ts`
+- `app/lib/date.ts`
 - `tests/comment-components.test.tsx`
 - `tests/activity-feed.test.tsx`
 - `tests/date-utils.test.ts`
 - `tests/issue-tabs.test.tsx`
-- `tests/doctype.test.ts`
-- `reducer` Rust unit tests live inside `reducer/src/lib.rs` (`#[cfg(test)] mod tests`)
+- `vitest.config.ts`, `tests/setup.ts`
+
+---
 
 ## 7. Test Strategy (TDD)
 
-**Order:** write failing tests → commit → implement → green.
+**Phase 3 — tests first (expected to fail), then implement.**
 
-**Rust reducer** (`cargo test`, mocked `query!`/`execute!`):
-- `Mutation` variants deserialize from JSON with the right `tag` (type alignment, Task 6).
-- `AddComment` / `EditComment` / `DeleteComment` emit the expected INSERT/UPDATE/DELETE SQL.
-- `UpdateIssue` emits a `select` (prior state) then an `update issues` then an `insert into activities` whose captured params include a `status_changed` payload with `from`/`to`.
-- `AssignIssue` and `MoveIssues` likewise emit activity inserts with `{from, to}` payloads.
-- `LogActivity` emits an INSERT using the client-supplied id.
-- `npm run build:reducer` (wasm32) confirms the reducer compiles for the real target.
-
-**TypeScript / React** (Vitest + jsdom + @testing-library/react; mocks of `useQuery`/`useMutate` via `~/context/document.context` and `useAuth`):
-- `tests/doctype.test.ts` — `Mutation` variant objects carry the correct `tag` and required fields; `Comment`/`Activity` types are satisfied by sample rows.
-- `tests/comment-components.test.tsx` — `CommentInput` calls `mutate` with `AddComment` on submit and clears; `CommentList` renders rows sorted; `CommentItem` edit/delete call `EditComment`/`DeleteComment`.
-- `tests/activity-feed.test.tsx` — renders friendly text per action; resolves actor/assignee/project names; groups by date.
-- `tests/date-utils.test.ts` — `Today`/`Yesterday`/absolute-date grouping; chronological sort; timezone-stable.
-- `tests/issue-tabs.test.tsx` — tab switcher shows the right panel; comment-count badge reflects query; `issue_id` is passed through.
-
-**Build / type check:** `npm run build`, `tsc --noEmit` (new `typecheck` script), `npm run build:reducer`.
-
-**Adversarial / manual (Phase 5.6):** rapid double-submit, empty/huge comment bodies, edit-then-delete race, switching tabs mid-action, missing actor (`auth` null), activities with null `payload`/`to`.
+1. **Reducer (`cargo test`):** assert `InitSchema` creates `comments` + `activities` with
+   correct columns/FKs; assert `AddComment`/`EditComment`/`DeleteComment` emit correct
+   parameterized SQL; assert `UpdateIssue`/`AssignIssue`/`MoveIssues` emit an
+   `insert into activities` with the correct `action` literal when `actor_id` is set, and
+   emit **no** activity when `actor_id` is `None`.
+2. **Date utils (`vitest`):** relative-time and date-grouping pure functions.
+3. **Components (`vitest` + `@testing-library`):** render with props, assert:
+   - `CommentInput` disables submit on empty body, calls `onSubmit` with body, resets.
+   - `CommentItem` shows author/timestamp/body, edit mode saves/cancels, delete calls handler.
+   - `CommentList` renders all comments, empty state, passes user names + callbacks through.
+   - `ActivityFeed` renders friendly text per action, resolves ids → names, groups by date.
+   - Tabs: Details/Comments/Activity switching shows the right panel; Comments tab shows count.
+4. **Verify:** `npm test` (vitest) + `cargo test` (reducer) + `cargo build --target wasm32`
+   (reducer compiles) + `npm run build` (app compiles). Manual smoke of the dev server for the
+   real-time sync criterion.
 
 ## 8. Risks
 
-- **`query!` ordering in tests:** the mock returns canned rows in LIFO order; tests must push expected query results in the correct sequence. Mitigated by keeping each test single-purpose.
-- **`actor_id` is a breaking mutation-shape change:** any caller not updated will fail TypeScript / runtime. Mitigated by a grep-verified audit of all `UpdateIssue`/`AssignIssue`/`MoveIssues` call sites (issue.tsx ×3, list.tsx ×3) and the server `mutate` helper.
-- **WASM host-symbols:** the prior `fix(build)` commit (af96f00) added a linker config for undefined host symbols; that config is **not** on `origin/main`, so `build:reducer` against the clean base may need the same `reducer/.cargo/config.toml` allowance. Will re-add if the build fails.
-- **Real-time sync (SQLSync):** unit tests mock the hooks; live multi-client sync is validated in the adversarial/manual phase, not automated.
-- **`VITE_BASE_URL` runtime:** `app/lib/sqlsync.tsx` calls `import.meta.env.VITE_BASE_URL.replace(...)` unguarded; `.env` has it set, but the dev server must be launched with the env loaded. (Out of scope to harden, but noted.)
+- **`cargo test` on a `cdylib`:** the `init_reducer!` macro may expand to WASM-host bindings
+  that don't compile natively. *Mitigation:* the `#[cfg(test)]` mock replaces `execute!`; if
+  compilation still fails, fall back to build-verification + UI tests only (reducer SQL is
+  simple and reviewed).
+- **`MoveIssues` bulk activity volume:** moving N issues logs N activity rows. Acceptable;
+  activities are chronological and the feed paginates/groups by date.
+- **Real-time sync:** depends on the SQLSync coordinator running. The `.env` sets
+  `VITE_BASE_URL=http://localhost:8080`; E2E verification of sync requires the coordinator
+  service (may be unavailable locally — flag as "manual" if so).
+- **`actor_id` optionality:** if a call site forgets to pass it, that change silently logs no
+  activity. *Mitigation:* the reducer test "no activity when actor_id is None" documents the
+  contract; the issue-detail call sites (the primary UX) always pass it.
 
-## 9. Diagrams
+---
 
-Architecture, data-flow, and a UI mockup are generated alongside this plan (see
-images below) and committed to this plans repo.
+## Diagrams
 
-![System Architecture](./issue-4-architecture.png)
+![System Architecture](./issue-4-redo-architecture.png)
 
-![Data Flow: Mutation → Reducer → UI](./issue-4-dataflow.png)
+![Data Flow](./issue-4-redo-data-flow.png)
 
-![UI Mockup: Issue detail tabs](./issue-4-mockup.png)
+![Issue Detail Tabs — Before/After](./issue-4-redo-beforeafter.png)
+
+![UI Mockup](./issue-4-redo-mockup.png)

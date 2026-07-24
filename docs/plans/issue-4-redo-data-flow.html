@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../extra.css">
+<title>Issue #4 — Data Flow</title>
+</head>
+<body>
+<div class="diagram">
+  <div class="diagram-title">Data Flow — Adding a Comment</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node"><div class="diagram-flow-label">CommentInput</div><div class="diagram-flow-sublabel">onSubmit(body)</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">Container</div><div class="diagram-flow-sublabel">useMutate(AddComment)</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">SQLSync</div><div class="diagram-flow-sublabel">dispatch mutation</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">Reducer WASM</div><div class="diagram-flow-sublabel">execute! insert</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">comments table</div></div>
+  </div>
+
+  <div class="diagram-title" style="margin-top:28px">Data Flow — Auto-logging an Activity</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node"><div class="diagram-flow-label">IssueDetails</div><div class="diagram-flow-sublabel">onChangeStatus(new)</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">useMutate</div><div class="diagram-flow-sublabel">UpdateIssue + actor_id</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">Reducer WASM</div><div class="diagram-flow-sublabel">update issues</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">activities table</div><div class="diagram-flow-sublabel">action='status_changed'</div></div>
+  </div>
+
+  <div class="diagram-title" style="margin-top:28px">Read Path (both)</div>
+  <div class="diagram-flow-horizontal">
+    <div class="diagram-flow-node"><div class="diagram-flow-label">tables</div><div class="diagram-flow-sublabel">comments / activities</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">useQuery</div><div class="diagram-flow-sublabel">sql`select … order by created_at`</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">Container</div><div class="diagram-flow-sublabel">resolve ids → names</div></div>
+    <div class="diagram-flow-arrow">→</div>
+    <div class="diagram-flow-node"><div class="diagram-flow-label">CommentList / ActivityFeed</div><div class="diagram-flow-sublabel">render</div></div>
+  </div>
+</div>
+</body>
+</html>

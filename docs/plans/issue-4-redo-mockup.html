@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#0a0a0a; color:#e4e4e7; padding:40px; margin:0; }
+  .panel { max-width:680px; background:#18181b; border:1px solid #27272a; border-radius:12px; overflow:hidden; }
+  .tabs { display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid #27272a; background:#18181b; }
+  .tab { padding:8px 14px; font-size:13px; color:#a1a1aa; border-bottom:2px solid transparent; }
+  .tab.active { color:#fafafa; border-bottom-color:#6366f1; }
+  .tab .count { color:#71717a; font-size:12px; margin-left:4px; }
+  .body { padding:20px 22px; }
+  h3 { margin:0 0 6px; font-size:22px; color:#f4f4f5; font-weight:600; }
+  .meta { font-size:12px; color:#71717a; margin-bottom:18px; }
+  .comment { display:flex; gap:10px; padding:10px 0; border-top:1px solid #27272a; }
+  .avatar { width:28px; height:28px; border-radius:50%; background:#6366f1; color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .cbody { flex:1; }
+  .chead { font-size:13px; margin-bottom:2px; }
+  .chead b { color:#f4f4f5; }
+  .chead span { color:#71717a; font-size:11px; margin-left:6px; }
+  .ctext { font-size:13px; color:#d4d4d8; }
+  .cactions { font-size:11px; color:#52525b; margin-top:4px; }
+  .cactions a { color:#71717a; margin-right:10px; text-decoration:none; }
+  .input { margin-top:14px; }
+  .input textarea { width:100%; box-sizing:border-box; background:#09090b; border:1px solid #27272a; border-radius:8px; color:#e4e4e7; padding:10px; font-size:13px; resize:none; }
+  .input button { margin-top:8px; background:#6366f1; color:#fff; border:0; border-radius:6px; padding:6px 14px; font-size:13px; }
+  .input button:disabled { background:#3f3f46; color:#71717a; }
+  .activity { padding:8px 0; border-top:1px solid #27272a; font-size:13px; color:#a1a1aa; }
+  .activity b { color:#d4d4d8; }
+  .day { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#52525b; margin:14px 0 4px; }
+  .scenario { margin-bottom:28px; }
+  .scenario-title { color:#71717a; font-size:12px; margin-bottom:10px; text-transform:uppercase; letter-spacing:.08em; }
+</style>
+</head>
+<body>
+<div class="scenario">
+  <div class="scenario-title">1. Comments tab — list + input + edit/delete</div>
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab">Details</div>
+      <div class="tab active">Comments <span class="count">(2)</span></div>
+      <div class="tab">Activity</div>
+    </div>
+    <div class="body">
+      <h3>Support nested replies in comments</h3>
+      <div class="meta">Created by Alice · Backlog · Medium</div>
+      <div class="comment">
+        <div class="avatar">A</div>
+        <div class="cbody">
+          <div class="chead"><b>Alice</b><span>2 hours ago</span></div>
+          <div class="ctext">I think we should thread replies under each comment for readability.</div>
+          <div class="cactions"><a>Edit</a><a>Delete</a></div>
+        </div>
+      </div>
+      <div class="comment">
+        <div class="avatar">B</div>
+        <div class="cbody">
+          <div class="chead"><b>Bob</b><span>1 hour ago</span></div>
+          <div class="ctext">+1, but let's keep it one level deep to start.</div>
+          <div class="cactions"><a>Edit</a><a>Delete</a></div>
+        </div>
+      </div>
+      <div class="input">
+        <textarea rows="2" placeholder="Add a comment…"></textarea>
+        <button disabled>Comment</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="scenario">
+  <div class="scenario-title">2. Activity tab — auto-logged timeline grouped by date</div>
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab">Details</div>
+      <div class="tab">Comments <span class="count">(2)</span></div>
+      <div class="tab active">Activity</div>
+    </div>
+    <div class="body">
+      <div class="day">Today</div>
+      <div class="activity"><b>Alice</b> changed status to In Progress</div>
+      <div class="activity"><b>Bob</b> assigned to Charlie</div>
+      <div class="activity"><b>Alice</b> moved to Frontend</div>
+      <div class="day">Yesterday</div>
+      <div class="activity"><b>Alice</b> changed priority to High</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
